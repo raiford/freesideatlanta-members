@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Freeside Admin Page{% endblock %}
+
+{% block content %}
+  <ul>
+    {% for task in admintasks %}
+    <li><a href="/admin?&task={{ task.task|urlencode }}">{{ task.name }}</a></li>
+    {% endfor %}
+  </ul>
+
+  {# Add member form #}
+  {% ifequal admintask "addmember" %}
+  <form action="/admin" method="post">
+    First Name: <input type="text" name="firstname"/><br/>
+    Last Name: <input type="text" name="lastname"/><br/>
+    Username: <input type="text" name="username"/><br/>
+    Email: <input type="text" name="email"/><br/>
+    Starving?: <input type="checkbox" name="starving" value="True"/><br/>
+    Temp Password: <input type="text" name="password"/><br/>
+    <input type="submit" value="Submit"/>
+  </form>
+  {% endifequal %}
+
+{% endblock %}

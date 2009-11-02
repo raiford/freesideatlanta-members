@@ -1,0 +1,61 @@
+/* General Styles for Freeside */
+
+body{
+  margin:0;
+  padding:25px 0 0 115px;
+  font-family:Arial,Sans-serif;
+}
+
+.sidebar{
+  position:absolute;
+  top:25px;
+  left:0;
+  width:110px;
+  height:100%;
+  border-right-style:solid;
+  border-right-width:2px;
+  text-align:left;
+}
+
+.sidebar ul{
+  padding-left:10px;
+  list-style-type:none;
+  list-style-position:outside;
+}
+
+.sidebar li{
+  padding-left:5px;
+  padding-top:3px;
+  padding-bottom:3px;
+  border-top:hidden;
+  border-top-width:1px;
+  border-left:hidden;
+  border-left-width:1px;
+  border-bottom:hidden;
+  border-bottom-width:1px;
+}
+
+.sidebar li.selected{
+  border-top:solid;
+  border-top-width:1px;
+  border-left:solid;
+  border-left-width:1px;
+  border-bottom:solid;
+  border-bottom-width:1px;
+  background-color:#B0B0B0;
+}
+
+.header{
+  position:absolute;
+  top:0;
+  left:0;
+  height:25px;
+  width:100%;
+  border-bottom-style:solid;
+  border-bottom-width:2px;
+}
+
+.header table{
+  position:absolute;
+  right:5px;
+}

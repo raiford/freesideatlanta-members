@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="../stylesheets/style.css" />
+  <title>{% block title %}Freeside Members Page{% endblock %}</title>
+</head>
+
+<body>
+  <div class="sidebar">
+    <ul>
+      {% for page in sidebar %}
+      <li{% if page.selected %} class="selected"{% endif %}><a href="{{ page.path|urlencode }}">{{ page.name }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="header">
+    <table>
+      <tr>
+        <td>Welcome, {{ user.username }}!</td>
+        <td><a href="/logout">Logout</a></td>
+      </tr>
+    </table>
+  </div>
+  <div id="content">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

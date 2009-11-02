@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Freeside Voting Page{% endblock %}
+
+{% block content %}
+  <h1>Vote</h1>
+  {% if nominating %}
+    <h2>Currently Nominating</h2>
+    <table class="nominate">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Nominee</th>
+          <th></th>
+        </tr>
+        {% for nomination in nominating %}
+        <form action="/vote" method="post">
+          <input type="hidden" name="election" value="{{ nomination.election.key }}"/>
+          <tr>
+            <td>{{ nomination.election.position }}</td>
+            <td>
+              <select name="nomination">
+                {% for member in nomination.eligible %}
+                <option value="{{ member.key }}">{{ member.username }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="submit" value="Submit"/></td>
+          </tr>
+        </form>
+        {% endfor %}
+      </thead>
+    </table>
+  {% endif %}
+
+  {% if voting %}
+    <h2>Currently Voting</h2>
+    <table class="vote">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Nominee</th>
+          <th></th>
+        </tr>
+        {% for election in voting %}
+        <form action="/vote" method="post">
+          <input type="hidden" name="election" value="{{ election.election.key }}"/>
+          <tr>
+            <td>{{ election.election.position }}</td>
+            <td>
+              <select name="vote">
+                {% for member in election.eligible %}
+                <option value="{{ member.key }}">{{ member.username }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="submit" value="Submit"/></td>
+          </tr>
+        </form>
+        {% endfor %}
+      </thead>
+    </table>
+  {% endif %}
+{% endblock %}
