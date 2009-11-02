@@ -120,6 +120,8 @@ class HomePage(FreesideHandler):
   """The default landing page."""
   def get(self):
     self.CheckAuth()
+    if self.request.path != '/home':
+      self.redirect('/home')
     template_values = {}
     self.RenderTemplate('base.html', template_values)
 
@@ -192,6 +194,7 @@ class Logout(FreesideHandler):
     self.CheckAuth()
     self.session.delete()
     self.redirect('/login')
+
 
 application = webapp.WSGIApplication([('/', HomePage),
                                       ('/login', LoginPage),
