@@ -2,13 +2,16 @@ import datetime
 
 from google.appengine.ext import db
 
+from appengine_utilities.sessions import Session
+
+#TODO fix all the validator classes to check the entire list.
 
 class Person(db.Model):
   """Can I see some ID please?"""
   firstname = db.StringProperty()
   lastname = db.StringProperty()
   #TODO validate username, no dupes
-  username = db.StringProperty()
+  username = db.StringProperty(required=True)
   email = db.EmailProperty(required=True)
   altemails = db.ListProperty(item_type=db.Email)
   phone = db.PhoneNumberProperty()
@@ -33,6 +36,45 @@ class Member(Person):
 
 class Election(db.Model):
   """Election Base Class."""
+  def ValidateNomineeDate(self):
+    """Make sure nominations are open."""
+    if not self.nominate_start < datetime.datetime.now() < self.nominate_end:
+      raise db.Error('This election is not accepting nominations right now.')
+
+  def ValidateVoteDate(self):
+    """Make sure votes are open."""
+    if not self.vote_start < datetime.datetime.now() < self.vote_end:
+      raise db.Error('This election is not accepting votes right now.')
+
+  def ValidateNominator(self, nominator):
+    """Make people only nominate once."""
+    self.ValidateNomineeDate()
+    member = self.ValidateMemberKey(nominator)
+    session_member = Session()['user']
+    if session_member != member:
+      raise db.BadValueError('%s does not match nominator' % session_member.username)
+
+    if nominator in self.nominators:
+      raise db.BadValueError('%s has already nominated someone.' % member.username)
+
+  def ValidateVote(self, vote):
+    """Make sure a vote is valid."""
+    self.ValidateVoteDate()
+    member = self.ValidateMemberKey(vote)
+    if vote not in self.nominees:
+      raise db.BadValueError('%s was not nominated.' % member.username)
+
+  def ValidateVoter(self, voter):
+    """Make sure someone does not vote twice."""
+    self.ValidateVoteDate()
+    member = self.ValidateMemberKey(voter)
+    session_member = Session()['user']
+    if session_member != member:
+      raise db.BadValueError('%s does not match voter' % session_member.username)
+
+    if voter in self.voters:
+      raise db.BadValueError('%s has already nominated someone.' % member.username)
+
   position = db.StringProperty(required=True)
   description = db.TextProperty()
   nominate_start = db.DateTimeProperty(required=True)
@@ -50,16 +92,6 @@ class Election(db.Model):
 
 class OfficerElection(Election):
   """Object that holds all data for an officer election."""
-  def ValidateNomineeDate(self):
-    """Make sure nominations are open."""
-    if not self.nominate_start < datetime.datetime.now() < self.nominate_end:
-      raise db.Error('This election is not accepting nominations right now.')
-
-  def ValidateVoteDate(self):
-    """Make sure nominations are open."""
-    if not self.vote_start < datetime.datetime.now() < self.vote_end:
-      raise db.Error('This election is not accepting votes right now.')
-
   def ValidateMemberKey(self, memberkey):
     """Make sure a key is actually an active Member key.
 
@@ -67,7 +99,7 @@ class OfficerElection(Election):
       member - The Member Model from datastore
     """
     if memberkey.kind() != "Member":
-      raise db.BadValueError('%s is not a key to a Member.' % nominee)
+      raise db.BadValueError('%s is not a key to a Member.' % memberkey)
 
     member = db.get(memberkey)
     if not member.active:
@@ -82,21 +114,26 @@ class OfficerElection(Election):
     if nominee in self.nominees:
       raise db.BadValueError('%s has already been nominated.' % member.username)
 
-  def ValidateNominator(self, nominator):
-    """Make people only nominate once."""
-    self.ValidateNomineeDate()
-    member = self.ValidateMemberKey(nominator)
-
-    if nominator in self.nominators:
-      raise db.BadValueError('%s has already nominated someone.' % member.username)
-
-  def ValidateVote(self, vote):
-    """Make sure a vote is valid."""
-    member = self.ValidateMemberKey(vote)
-    if vote not in self.nominees:
-      raise db.BadValueError('%s was not nominated.' % member.username)
-
 
 class BoardElection(Election):
   """A Board Member Election."""
   # Board Members don't have to be members.
+  def ValidatePersonKey(self, personkey):
+    """Make sure the key is a valid Person type object.
+
+    Returns:
+      The person object.
+    """
+    keytype = personkey.kind()
+    if keytype == "Member" or keytype == "Person":
+      person = db.get(personkey)
+      return person
+    else:
+      raise db.BadValueError('%s is not a member or person key' % personkey)
+
+  def ValidateNominee(self, nominee):
+    """Validate a new Nominee."""
+    self.ValidateNomineeDate()
+    person = self.ValidatePersonKey(nominee)
+    if nominee in self.nominees:
+      raise db.BadValueError('%s has already been nominated' % nominee.username)

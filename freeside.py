@@ -170,7 +170,7 @@ class AdminPage(FreesideHandler):
     vote_start = self.request.get('vote_start')
     vote_end = self.request.get('vote_end')
     description = self.request.get('description')
-    
+
     nominate_start = nominate_start.split('/')
     nominate_start = map(int, nominate_start)
     nominate_start = datetime.datetime(year=nominate_start[2],
@@ -204,10 +204,16 @@ class AdminPage(FreesideHandler):
                                                     vote_start=vote_start,
                                                     vote_end=vote_end,
                                                     description=description)
-    #TODO add BoardElection once model is complete
+    if election_type == 'BoardElection':
+      new_election = freesidemodels.BoardElection(position=position,
+                                                  nominate_start=nominate_start,
+                                                  nominate_end=nominate_end,
+                                                  vote_start=vote_start,
+                                                  vote_end=vote_end,
+                                                  description=description)
     new_election.put()
     self.redirect('/admin')
-                                                    
+
 
   def get(self):
     self.CheckAdmin()
@@ -215,7 +221,9 @@ class AdminPage(FreesideHandler):
     task =  self.request.get('task')
     template_values.update({'admintask': task})
     template_values.update({'electiontypes': self.electiontypes})
-    template_values.update({'positions': ['President', 'Treasurer']})
+    template_values.update({'positions': ['President',
+                                          'Treasurer',
+                                          'BoardMember']})
     self.RenderTemplate('admin.html', template_values)
 
   def post(self):
@@ -254,18 +262,42 @@ class MembersList(FreesideHandler):
 
 class Vote(FreesideHandler):
   """Serve the voting page."""
-  def get(self):
-    self.CheckAuth()
+  def GetOfficerElections(self):
+    """Return a list of current officer elections."""
     now = datetime.datetime.now(UTC())
     q = db.GqlQuery("SELECT * FROM OfficerElection " +
                     "WHERE vote_end >= DATETIME(:1) " +
                     "ORDER BY vote_end",
                     str(now).split('.')[0])
     # get rid of any elections that have not started.
-    current_elections = []
+    officer_elections = []
     for election in q:
       if election.nominate_start.replace(tzinfo=UTC()) < now:
-        current_elections.append(election)
+        officer_elections.append(election)
+
+    return officer_elections
+
+  def GetBoardElections(self):
+    """Return a list of current board elections."""
+    now = datetime.datetime.now(UTC())
+    q = db.GqlQuery("SELECT * FROM BoardElection " +
+                    "WHERE vote_end >= DATETIME(:1) " +
+                    "ORDER BY vote_end",
+                    str(now).split('.')[0])
+    # get rid of any elections that have not started.
+    board_elections = []
+    for election in q:
+      if election.nominate_start.replace(tzinfo=UTC()) < now:
+        board_elections.append(election)
+
+    return board_elections
+
+  def get(self):
+    self.CheckAuth()
+    now = datetime.datetime.now(UTC())
+    current_elections = []
+    current_elections.extend(self.GetOfficerElections())
+    current_elections.extend(self.GetBoardElections())
 
     voting = []
     nominating = []
@@ -300,7 +332,31 @@ class Vote(FreesideHandler):
   def post(self):
     self.CheckAuth()
     arguments = self.request.arguments()
-    #TODO parse the post arguments and put them in the database
+    vote = self.request.get('vote')
+    nomination = self.request.get('nomination')
+    election = self.request.get('election')
+    election_key = db.Key(election)
+    election = db.get(election_key)
+
+    if nomination:
+      nomination_key = db.Key(nomination)
+      #TODO check member/person status here
+      if nomination_key not in election.nominees:
+        election.nominees.append(nomination_key)
+        election.nominators.append(self.session['user'].key())
+        election.put()
+      else:
+        #ToDo: fancy html error page
+        print "already nominated"
+
+    if vote:
+      vote_key = db.Key(vote)
+      #TODO verify the vote key here
+      election.votes.append(vote_key)
+      election.voters.append(self.session['user'].key())
+      election.put()
+
+    self.redirect('/vote')
 
 
 class Logout(FreesideHandler):
