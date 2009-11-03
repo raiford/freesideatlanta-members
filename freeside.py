@@ -69,8 +69,12 @@ class LoginPage(FreesideHandler):
     username = self.request.get('username')
     password = self.request.get('password')
     hashedpass = hashlib.sha256(password).digest()
-    q = db.GqlQuery("SELECT * FROM Member WHERE username = :1 AND active = True", username)
-    user = q.get()
+    usernameq = db.GqlQuery("SELECT * FROM Member WHERE username = :1 AND active = True", username)
+    user = usernameq.get()
+    # Try looking up by email if username was not found
+    if not user:
+      emailq = db.GqlQuery("SELECT * FROM Member WHERE email = :1 AND active = True", username)
+      user = emailq.get()
     if user and hashedpass == user.password:
         self.session['user'] = user
         self.redirect('/home')
@@ -81,20 +85,14 @@ class LoginPage(FreesideHandler):
 
 class AdminPage(FreesideHandler):
   """The admin page request hanndler."""
-  admintasks = [
-      {'name': 'Add Member', 'task': 'addmember'},
-      {'name': 'Disable Member', 'task': 'delmember'},
-  ]
+  admintasks = {
+      'addmember': 'Add Member',
+      'addelection': 'Add Election',
+  }
+  electiontypes = ['BoardElection', 'OfficerElection']
 
-  def get(self):
-    self.CheckAdmin()
-    template_values = {'admintasks': self.admintasks}
-    if self.request.get('task') == 'addmember':
-      template_values.update({'admintask': 'addmember'})
-    self.RenderTemplate('admin.html', template_values)
-
-  def post(self):
-    self.CheckAdmin()
+  def AddMember(self):
+    """Add a new member to the database."""
     username = self.request.get('username')
     firstname = self.request.get('firstname')
     lastname = self.request.get('lastname')
@@ -111,17 +109,66 @@ class AdminPage(FreesideHandler):
 
     if self.request.get('starving') == 'True':
       newmember.starving = True
-
     newmember.put()
-    self.redirect('/admin?&task=addmember')
+    self.redirect('/admin')
+
+  def AddElection(self):
+    """Create an election."""
+    election_type = self.request.get('election_type')
+    position = self.request.get('position')
+    nomination_start = self.request.get('nomination_start')
+    nomination_end = self.request.get('nomination_end')
+    vote_start = self.request.get('vote_start')
+    vote_end = self.request.get('vote_end')
+    description = self.request.get('description')
+    
+    nominate_start = nominate_start.split('/')
+    nominate_start = datetime.datetime(nominate_start[2],
+                                       nominate_start[0],
+                                       nominate_start[1])
+    nominate_end = nominate_end.split('/')
+    nominate_end = datetime.datetime(nominate_end[2],
+                                     nominate_end[0],
+                                     nominate_end[1])
+    vote_start = vote_start.split('/')
+    vote_start = datetime.datetime(vote_start[2],
+                                   vote_start[0],
+                                   vote_start[1])
+    vote_end = vote_end.split('/')
+    vote_end = datetime.datetime(vote_end[2],
+                                 vote_end[0],
+                                 vote_end[1])
+
+
+    if election_type == 'OfficerElection':
+      new_election = freesidemodels.OfficerElection(position=position,
+                                                    nominate_start=nominate_start,
+                                                    nominate_end=nominate_end,
+                                                    vote_start=vote_end,
+                                                    description=description)
+    #TODO add BoardElection once model is complete
+    new_election.put()
+    self.redirect('/admin')
+                                                    
+
+  def get(self):
+    self.CheckAdmin()
+    template_values = {'admintasks': self.admintasks}
+    task =  self.request.get('task')
+    template_values.update({'admintask': task})
+    template_values.update({'electiontypes': self.electiontypes})
+    template_values.update({'positions': ['President', 'Treasurer']})
+    self.RenderTemplate('admin.html', template_values)
+
+  def post(self):
+    self.CheckAdmin()
+    task = self.request.get('task')
 
 
 class HomePage(FreesideHandler):
   """The default landing page."""
   def get(self):
     self.CheckAuth()
-    if self.request.path != '/home':
-      self.redirect('/home')
     template_values = {}
     self.RenderTemplate('base.html', template_values)
 
@@ -194,7 +241,6 @@ class Logout(FreesideHandler):
     self.CheckAuth()
     self.session.delete()
     self.redirect('/login')
-
 
 application = webapp.WSGIApplication([('/', HomePage),
                                       ('/login', LoginPage),

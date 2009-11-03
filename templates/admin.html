@@ -5,19 +5,45 @@
 {% block content %}
   <ul>
     {% for task in admintasks %}
-    <li><a href="/admin?&task={{ task.task|urlencode }}">{{ task.name }}</a></li>
+    <li><a href="/admin?&task={{ task|urlencode }}">{{ task }}</a></li>
     {% endfor %}
   </ul>
 
   {# Add member form #}
   {% ifequal admintask "addmember" %}
   <form action="/admin" method="post">
+    <input type="hidden" value="addmember"/>
     First Name: <input type="text" name="firstname"/><br/>
     Last Name: <input type="text" name="lastname"/><br/>
     Username: <input type="text" name="username"/><br/>
     Email: <input type="text" name="email"/><br/>
     Starving?: <input type="checkbox" name="starving" value="True"/><br/>
     Temp Password: <input type="text" name="password"/><br/>
+    <input type="submit" value="Submit"/>
+  </form>
+  {% endifequal %}
+
+  {# create election form #}
+  {% ifequal admintask "addelection" %}
+  <form action="/admin" method="post">
+    <input type="hidden" value="addelection"/>
+    Election Type:
+    <select name="election_type">
+    {% for electiontype in electiontypes %}
+      <option value="{{ electiontype }}">{{ electiontype }}</option>
+    {% endfor %}
+    </select><br/>
+    Position:
+    <select name="position">
+    {% for position in positions %}
+      <option value="{{ position }}">{{ position }}</option>
+    {% endfor %}
+    </select><br/>
+    Nomination Start Date: <input type="text" name="nomination_start"/><br/>
+    Nomination End Date: <input type="text" name="nomination_end"/><br/>
+    Vote Start Date: <input type="text" name="vote_start"/><br/>
+    Vote End Date: <input type="text" name="vote_end"/><br/>
+    Descripion: <textarea value="description" rows="4" cols="20"></textarea><br/>
     <input type="submit" value="Submit"/>
   </form>
   {% endifequal %}
