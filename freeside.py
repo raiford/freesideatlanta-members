@@ -1,6 +1,7 @@
 import os
 import hashlib
 import datetime
+import sys
 
 from google.appengine.ext import webapp
 from google.appengine.ext import db
@@ -11,6 +12,54 @@ from appengine_utilities.sessions import Session
 
 import freesidemodels
 
+
+class UTC(datetime.tzinfo):
+  """Plain old UTC time."""
+  def utcoffset(self, dt):
+    return datetime.timedelta(0)
+
+  def tzname(self, dt):
+    return 'UTC'
+
+  def dst(self, dt):
+    return datetime.timedelta(0)
+
+
+class Eastern(datetime.tzinfo):
+  """An implementation of the Eastern time zone.
+
+  This is necessary because data store only uses UTC.
+  """
+  def utcoffset(self, dt):
+    return datetime.timedelta(hours=-5) + self.dst(dt)
+
+  def _FirstSunday(self, dt):
+    return dt + datetime.timedelta(days=(6-dt.weekday()))
+
+  def dst(self, dt):
+    # 2 am on the second Sunday in March
+    dst_start = self._FirstSunday(datetime.datetime(dt.year, 3, 8, 2))
+    # 1 am on the first Sunday in November
+    dst_end = self._FirstSunday(datetime.datetime(dt.year, 11, 1, 1))
+
+    if dst_start <= dt.replace(tzinfo=None) < dst_end:
+      return datetime.timedelta(hours=1)
+    else:
+      return datetime.timedelta(hours=0)
+
+  def tzname(self, dt):
+    if self.dst(dt) == datetime.timedelta(hour=0):
+      return "EST"
+    else:
+      return "EDT"
+
+
+def d():
+  # a hack to make pdb work with app engine
+  for attr in ('stdin', 'stdout', 'stderr'):
+     setattr(sys, attr, getattr(sys, '__%s__' % attr))
+  import pdb
+  pdb.set_trace()
 
 class FreesideHandler(webapp.RequestHandler):
   """Request Handler with some common functions."""
@@ -116,35 +165,44 @@ class AdminPage(FreesideHandler):
     """Create an election."""
     election_type = self.request.get('election_type')
     position = self.request.get('position')
-    nomination_start = self.request.get('nomination_start')
-    nomination_end = self.request.get('nomination_end')
+    nominate_start = self.request.get('nomination_start')
+    nominate_end = self.request.get('nomination_end')
     vote_start = self.request.get('vote_start')
     vote_end = self.request.get('vote_end')
     description = self.request.get('description')
     
     nominate_start = nominate_start.split('/')
-    nominate_start = datetime.datetime(nominate_start[2],
-                                       nominate_start[0],
-                                       nominate_start[1])
+    nominate_start = map(int, nominate_start)
+    nominate_start = datetime.datetime(year=nominate_start[2],
+                                       month=nominate_start[0],
+                                       day=nominate_start[1],
+                                       tzinfo=Eastern())
     nominate_end = nominate_end.split('/')
-    nominate_end = datetime.datetime(nominate_end[2],
-                                     nominate_end[0],
-                                     nominate_end[1])
+    nominate_end = map(int, nominate_end)
+    nominate_end = datetime.datetime(year=nominate_end[2],
+                                     month=nominate_end[0],
+                                     day=nominate_end[1],
+                                     tzinfo=Eastern())
     vote_start = vote_start.split('/')
-    vote_start = datetime.datetime(vote_start[2],
-                                   vote_start[0],
-                                   vote_start[1])
+    vote_start = map(int, vote_start)
+    vote_start = datetime.datetime(year=vote_start[2],
+                                   month=vote_start[0],
+                                   day=vote_start[1],
+                                   tzinfo=Eastern())
     vote_end = vote_end.split('/')
-    vote_end = datetime.datetime(vote_end[2],
-                                 vote_end[0],
-                                 vote_end[1])
+    vote_end = map(int, vote_end)
+    vote_end = datetime.datetime(year=vote_end[2],
+                                 month=vote_end[0],
+                                 day=vote_end[1],
+                                 tzinfo=Eastern())
 
 
     if election_type == 'OfficerElection':
       new_election = freesidemodels.OfficerElection(position=position,
                                                     nominate_start=nominate_start,
                                                     nominate_end=nominate_end,
-                                                    vote_start=vote_end,
+                                                    vote_start=vote_start,
+                                                    vote_end=vote_end,
                                                     description=description)
     #TODO add BoardElection once model is complete
     new_election.put()
@@ -162,7 +220,11 @@ class AdminPage(FreesideHandler):
 
   def post(self):
     self.CheckAdmin()
+    admin_methods = {'addmember': self.AddMember,
+                     'addelection': self.AddElection,
+    }
     task = self.request.get('task')
+    admin_methods[task]()
 
 
 class HomePage(FreesideHandler):
@@ -194,36 +256,42 @@ class Vote(FreesideHandler):
   """Serve the voting page."""
   def get(self):
     self.CheckAuth()
+    now = datetime.datetime.now(UTC())
     q = db.GqlQuery("SELECT * FROM OfficerElection " +
                     "WHERE vote_end >= DATETIME(:1) " +
                     "ORDER BY vote_end",
-                    str(datetime.datetime.now()).split('.')[0])
+                    str(now).split('.')[0])
     # get rid of any elections that have not started.
     current_elections = []
     for election in q:
-      if election.nominate_start < datetime.datetime.now():
+      if election.nominate_start.replace(tzinfo=UTC()) < now:
         current_elections.append(election)
 
     voting = []
     nominating = []
-    now = datetime.datetime.now()
     members = self.GetActiveMembers()
-    # Sort current electionns by voting and nominating
+    # Sort current elections by voting and nominating
     for election in current_elections:
-      if election.nominate_start < now < election.nominate_end:
+      nominate_start = election.nominate_start.replace(tzinfo=UTC())
+      nominate_end = election.nominate_end.replace(tzinfo=UTC())
+      vote_start = election.vote_start.replace(tzinfo=UTC())
+      vote_end = election.vote_end.replace(tzinfo=UTC())
+      if nominate_start < now < nominate_end:
         eligible = []
         for member in members:
           if member.key() not in election.nominees:
             eligible.append(member)
-        nominating.append({'election': election, 'eligible': eligible})
-      elif election.vote_start < now < election.vote_end:
+        nominating.append({'election': election,
+                           'eligible': eligible,
+                           'nominate_end': nominate_end.astimezone(Eastern())})
+      elif vote_start < now < vote_end:
         eligible = []
         for member in members:
           if member.key() in election.nominees:
             eligible.append(member)
         voting.append({'election': election, 'eligible': eligible})
       else:
-        raise Error('Error in the election dates.')
+        raise ValueError('Error in the election dates.')
 
     template_values = {'voting': voting,
                        'nominating': nominating,}

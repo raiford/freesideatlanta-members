@@ -12,7 +12,7 @@
   {# Add member form #}
   {% ifequal admintask "addmember" %}
   <form action="/admin" method="post">
-    <input type="hidden" value="addmember"/>
+    <input type="hidden" name="task" value="addmember"/>
     First Name: <input type="text" name="firstname"/><br/>
     Last Name: <input type="text" name="lastname"/><br/>
     Username: <input type="text" name="username"/><br/>
@@ -26,7 +26,7 @@
   {# create election form #}
   {% ifequal admintask "addelection" %}
   <form action="/admin" method="post">
-    <input type="hidden" value="addelection"/>
+    <input type="hidden" name="task" value="addelection"/>
     Election Type:
     <select name="election_type">
     {% for electiontype in electiontypes %}
