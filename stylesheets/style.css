@@ -89,3 +89,22 @@ body{
   margin-left: 99px;
   margin-right: 8px;
 }
+
+#election{
+  float: left;
+  border: 2px solid;
+  margin: 5px;
+  text-align:center;
+}
+
+#election ul{
+  list-style: none;
+}
+
+#election #title{
+  background-color: #E8E8E8;
+  display: block;
+  border-bottom: 1px solid;
+  padding: 5px;
+}
+

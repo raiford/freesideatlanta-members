@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from google.appengine.ext import db
 
@@ -7,7 +7,7 @@ from appengine_utilities.sessions import Session
 #TODO fix all the validator classes to check the entire list.
 
 class Person(db.Model):
-  """Can I see some ID please?"""
+  """Creating this as a base class so we can nominate non-members."""
   firstname = db.StringProperty()
   lastname = db.StringProperty()
   #TODO validate username, no dupes
@@ -38,12 +38,12 @@ class Election(db.Model):
   """Election Base Class."""
   def ValidateNomineeDate(self):
     """Make sure nominations are open."""
-    if not self.nominate_start < datetime.datetime.now() < self.nominate_end:
+    if not self.nominate_start < datetime.now() < self.nominate_end:
       raise db.Error('This election is not accepting nominations right now.')
 
   def ValidateVoteDate(self):
     """Make sure votes are open."""
-    if not self.vote_start < datetime.datetime.now() < self.vote_end:
+    if not self.vote_start < datetime.now() < self.vote_end:
       raise db.Error('This election is not accepting votes right now.')
 
   def ValidateNominator(self, nominator):

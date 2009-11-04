@@ -2,6 +2,7 @@ import os
 import hashlib
 import datetime
 import sys
+from random import shuffle
 
 from google.appengine.ext import webapp
 from google.appengine.ext import db
@@ -11,55 +12,19 @@ from google.appengine.ext.webapp import template
 from appengine_utilities.sessions import Session
 
 import freesidemodels
+import timezones
 
 
-class UTC(datetime.tzinfo):
-  """Plain old UTC time."""
-  def utcoffset(self, dt):
-    return datetime.timedelta(0)
-
-  def tzname(self, dt):
-    return 'UTC'
-
-  def dst(self, dt):
-    return datetime.timedelta(0)
-
-
-class Eastern(datetime.tzinfo):
-  """An implementation of the Eastern time zone.
-
-  This is necessary because data store only uses UTC.
-  """
-  def utcoffset(self, dt):
-    return datetime.timedelta(hours=-5) + self.dst(dt)
-
-  def _FirstSunday(self, dt):
-    return dt + datetime.timedelta(days=(6-dt.weekday()))
-
-  def dst(self, dt):
-    # 2 am on the second Sunday in March
-    dst_start = self._FirstSunday(datetime.datetime(dt.year, 3, 8, 2))
-    # 1 am on the first Sunday in November
-    dst_end = self._FirstSunday(datetime.datetime(dt.year, 11, 1, 1))
-
-    if dst_start <= dt.replace(tzinfo=None) < dst_end:
-      return datetime.timedelta(hours=1)
-    else:
-      return datetime.timedelta(hours=0)
-
-  def tzname(self, dt):
-    if self.dst(dt) == datetime.timedelta(hour=0):
-      return "EST"
-    else:
-      return "EDT"
-
+class Error(Exception):
+  """Basic Error."""
 
 def d():
-  # a hack to make pdb work with app engine
+  # a hack to make pdb work with app engine SDK
   for attr in ('stdin', 'stdout', 'stderr'):
      setattr(sys, attr, getattr(sys, '__%s__' % attr))
   import pdb
   pdb.set_trace()
+
 
 class FreesideHandler(webapp.RequestHandler):
   """Request Handler with some common functions."""
@@ -72,7 +37,7 @@ class FreesideHandler(webapp.RequestHandler):
     sidebar = [
         {'name': 'Home', 'path': '/home'},
         {'name': 'Members', 'path': '/members'},
-        {'name': 'Vote', 'path': '/vote'},
+        {'name': 'Elections', 'path': '/elections'},
     ]
     if self.session['user'].admin:
       sidebar.append({'name': 'Admin', 'path': '/admin'})
@@ -139,6 +104,7 @@ class AdminPage(FreesideHandler):
       'addelection': 'Add Election',
   }
   electiontypes = ['BoardElection', 'OfficerElection']
+  positions = ['President', 'Treasurer', 'Secretary', 'Board Member']
 
   def AddMember(self):
     """Add a new member to the database."""
@@ -176,25 +142,28 @@ class AdminPage(FreesideHandler):
     nominate_start = datetime.datetime(year=nominate_start[2],
                                        month=nominate_start[0],
                                        day=nominate_start[1],
-                                       tzinfo=Eastern())
+                                       tzinfo=timezones.Eastern())
     nominate_end = nominate_end.split('/')
     nominate_end = map(int, nominate_end)
     nominate_end = datetime.datetime(year=nominate_end[2],
                                      month=nominate_end[0],
                                      day=nominate_end[1],
-                                     tzinfo=Eastern())
+                                     tzinfo=timezones.Eastern())
     vote_start = vote_start.split('/')
     vote_start = map(int, vote_start)
     vote_start = datetime.datetime(year=vote_start[2],
                                    month=vote_start[0],
                                    day=vote_start[1],
-                                   tzinfo=Eastern())
+                                   tzinfo=timezones.Eastern())
     vote_end = vote_end.split('/')
     vote_end = map(int, vote_end)
     vote_end = datetime.datetime(year=vote_end[2],
                                  month=vote_end[0],
                                  day=vote_end[1],
-                                 tzinfo=Eastern())
+                                 tzinfo=timezones.Eastern())
+
+    if not nominate_start < nominate_end <= vote_start < vote_end:
+      raise Error('Dates are not in order.')
 
 
     if election_type == 'OfficerElection':
@@ -204,13 +173,16 @@ class AdminPage(FreesideHandler):
                                                     vote_start=vote_start,
                                                     vote_end=vote_end,
                                                     description=description)
-    if election_type == 'BoardElection':
+    elif election_type == 'BoardElection':
       new_election = freesidemodels.BoardElection(position=position,
                                                   nominate_start=nominate_start,
                                                   nominate_end=nominate_end,
                                                   vote_start=vote_start,
                                                   vote_end=vote_end,
                                                   description=description)
+    else:
+      raise Error('Unknown Election Type')
+
     new_election.put()
     self.redirect('/admin')
 
@@ -221,9 +193,7 @@ class AdminPage(FreesideHandler):
     task =  self.request.get('task')
     template_values.update({'admintask': task})
     template_values.update({'electiontypes': self.electiontypes})
-    template_values.update({'positions': ['President',
-                                          'Treasurer',
-                                          'BoardMember']})
+    template_values.update({'positions': self.positions})
     self.RenderTemplate('admin.html', template_values)
 
   def post(self):
@@ -254,17 +224,11 @@ class MembersList(FreesideHandler):
     self.RenderTemplate('members.html', template_values)
 
 
-#class MemberPage(FreesideHandler):
-#  """Display a member's profile."""
-#  def get(self):
-#  #TODO Figure out how to get /members/username from the URL
-
-
-class Vote(FreesideHandler):
+class Elections(FreesideHandler):
   """Serve the voting page."""
   def GetOfficerElections(self):
     """Return a list of current officer elections."""
-    now = datetime.datetime.now(UTC())
+    now = datetime.datetime.now(timezones.UTC())
     q = db.GqlQuery("SELECT * FROM OfficerElection " +
                     "WHERE vote_end >= DATETIME(:1) " +
                     "ORDER BY vote_end",
@@ -272,14 +236,14 @@ class Vote(FreesideHandler):
     # get rid of any elections that have not started.
     officer_elections = []
     for election in q:
-      if election.nominate_start.replace(tzinfo=UTC()) < now:
+      if election.nominate_start.replace(tzinfo=timezones.UTC()) < now:
         officer_elections.append(election)
 
     return officer_elections
 
   def GetBoardElections(self):
     """Return a list of current board elections."""
-    now = datetime.datetime.now(UTC())
+    now = datetime.datetime.now(timezones.UTC())
     q = db.GqlQuery("SELECT * FROM BoardElection " +
                     "WHERE vote_end >= DATETIME(:1) " +
                     "ORDER BY vote_end",
@@ -287,43 +251,134 @@ class Vote(FreesideHandler):
     # get rid of any elections that have not started.
     board_elections = []
     for election in q:
-      if election.nominate_start.replace(tzinfo=UTC()) < now:
+      if election.nominate_start.replace(tzinfo=timezones.UTC()) < now:
         board_elections.append(election)
 
     return board_elections
 
+  def _NominateTransaction(self, election_key, nominee_key):
+    """Class to wrap the actual nomination in a transaction."""
+    election = db.get(election_key)
+    userkey = self.session['user'].key()
+    if nominee_key not in election.nominees:
+      election.nominees.append(nominee_key)
+    else:
+      raise db.Rollback('Person already nominated')
+
+    if userkey not in election.nominators:
+      election.nominators.append(userkey)
+      # shuffle the nominators so they are anonymous
+      shuffle(election.nominators)
+    else:
+      raise db.Rollback('You have already nominated someone')
+
+    election.put()
+
+  def Nominate(self, election_key, nominee_key):
+    """Nominate a member for an election."""
+    election = db.get(election_key)
+    nominee = db.get(nominee_key)
+    electiontype = election.kind()
+    nomineetype = nominee.kind()
+    now = datetime.datetime.now()
+
+    # You can't nominate yourself
+    if nominee_key == self.session['user'].key():
+      raise Error('You cant nominate yourself')
+
+    # you can only nominate once
+    if self.session['user'].key() in election.nominators:
+      raise Error('You can only nominate once')
+
+    # Verify that the election is accepting nominations
+    if not election.nominate_start < now < election.nominate_end:
+      #TODO Error page
+      raise Error('Election is not accepting nominations')
+
+    # Verify the nominee is valid for the election type.
+    if electiontype == 'OfficerElection' and nomineetype != 'Member':
+      #TODO Replace with an error page.
+      raise Error('Nominee is not a member')
+    elif electiontype == 'BoardElection' and nomineetype not in ['Member', 'Person']:
+      #TODO Replace with an error page.
+      raise Error('Nominee is not a member or person')
+
+    nominee_key = nominee.key()
+    election_key = election.key()
+    db.run_in_transaction(self._NominateTransaction, election_key, nominee_key)
+
+  def _VoteTransaction(self, election_key, vote_key):
+    """Transaction to handle the vote."""
+    election = db.get(election_key)
+    userkey = self.session['user'].key()
+    if userkey not in election.voters:
+      election.voters.append(userkey)
+      election.votes.append(vote_key)
+      # shuffle the voters so they are anonymous
+      shuffle(election.voters)
+    else:
+      raise db.Rollback('You have already voted someone')
+
+    election.put()
+
+  def Vote(self, election_key, vote_key):
+    """Cast a Vote."""
+    election = db.get(election_key)
+    vote = db.get(vote_key)
+    now = datetime.datetime.now()
+
+    # Make sure the election is accepting votes
+    if not election.vote_start < now < election.vote_end:
+      raise Error('Election is not accepting Votes')
+
+    # Make sure that the vote was nominated
+    if vote_key not in election.nominees:
+      raise Error('Your vote was not nominated')
+
+    # You can only vote once
+    if self.session['user'].key() in election.voters:
+      raise Error('You already voted')
+
+    db.run_in_transaction(self._VoteTransaction, election_key, vote_key)
+
   def get(self):
     self.CheckAuth()
-    now = datetime.datetime.now(UTC())
+    now = datetime.datetime.now(timezones.UTC())
     current_elections = []
     current_elections.extend(self.GetOfficerElections())
     current_elections.extend(self.GetBoardElections())
 
     voting = []
     nominating = []
-    members = self.GetActiveMembers()
+    user = self.session['user']
     # Sort current elections by voting and nominating
     for election in current_elections:
-      nominate_start = election.nominate_start.replace(tzinfo=UTC())
-      nominate_end = election.nominate_end.replace(tzinfo=UTC())
-      vote_start = election.vote_start.replace(tzinfo=UTC())
-      vote_end = election.vote_end.replace(tzinfo=UTC())
+      nominate_start = election.nominate_start.replace(tzinfo=timezones.UTC())
+      nominate_end = election.nominate_end.replace(tzinfo=timezones.UTC())
+      vote_start = election.vote_start.replace(tzinfo=timezones.UTC())
+      vote_end = election.vote_end.replace(tzinfo=timezones.UTC())
       if nominate_start < now < nominate_end:
         eligible = []
-        for member in members:
-          if member.key() not in election.nominees:
+        nominees = []
+        has_nominated = user.key() in election.nominators
+        for member in self.GetActiveMembers():
+          if member.key() not in election.nominees and member.key() != user.key():
             eligible.append(member)
+        for nomineekey in election.nominees:
+          nominees.append(db.get(nomineekey))
         nominating.append({'election': election,
                            'eligible': eligible,
-                           'nominate_end': nominate_end.astimezone(Eastern())})
-      elif vote_start < now < vote_end:
+                           'nominate_end': nominate_end.astimezone(timezones.Eastern()),
+                           'nominees': nominees,
+                           'has_nominated': has_nominated})
+      elif vote_start < now < vote_end and user.key():
         eligible = []
-        for member in members:
-          if member.key() in election.nominees:
-            eligible.append(member)
-        voting.append({'election': election, 'eligible': eligible})
-      else:
-        raise ValueError('Error in the election dates.')
+        has_voted = user.key() in elections.voters
+        for nominee in election.nominees:
+            eligible.append(db.get(nominee))
+        voting.append({'election': election,
+                       'eligible': eligible,
+                       'vote_end': vote_end.astimezone(timezones.Eastern())})
 
     template_values = {'voting': voting,
                        'nominating': nominating,}
@@ -336,27 +391,15 @@ class Vote(FreesideHandler):
     nomination = self.request.get('nomination')
     election = self.request.get('election')
     election_key = db.Key(election)
-    election = db.get(election_key)
 
     if nomination:
-      nomination_key = db.Key(nomination)
-      #TODO check member/person status here
-      if nomination_key not in election.nominees:
-        election.nominees.append(nomination_key)
-        election.nominators.append(self.session['user'].key())
-        election.put()
-      else:
-        #ToDo: fancy html error page
-        print "already nominated"
-
-    if vote:
+      nominee_key = db.Key(nomination)
+      self.Nominate(election_key, nominee_key)
+    elif vote:
       vote_key = db.Key(vote)
-      #TODO verify the vote key here
-      election.votes.append(vote_key)
-      election.voters.append(self.session['user'].key())
-      election.put()
+      self.Vote(election_key, vote_key)
 
-    self.redirect('/vote')
+    self.redirect('/elections')
 
 
 class Logout(FreesideHandler):
@@ -372,7 +415,7 @@ application = webapp.WSGIApplication([('/', HomePage),
                                       ('/admin', AdminPage),
                                       ('/members', MembersList),
                                       ('/logout', Logout),
-                                      ('/vote', Vote),],
+                                      ('/elections', Elections),],
                                      debug=True)
 
 def main():

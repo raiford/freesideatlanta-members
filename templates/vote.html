@@ -3,64 +3,60 @@
 {% block title %}Freeside Voting Page{% endblock %}
 
 {% block content %}
-  <h1>Vote</h1>
-  {% if nominating %}
-    <h2>Currently Nominating</h2>
-    <table class="nominate">
-      <thead>
-        <tr>
-          <th>Position</th>
-          <th>Nominee</th>
-          <th>Nominations Closes</th>
-          <th></th>
-        </tr>
-        {% for nomination in nominating %}
-        <form action="/vote" method="post">
-          <input type="hidden" name="election" value="{{ nomination.election.key }}"/>
-          <tr>
-            <td>{{ nomination.election.position }}</td>
-            <td>
-              <select name="nomination">
-                {% for member in nomination.eligible %}
-                <option value="{{ member.key }}">{{ member.username }}</option>
-                {% endfor %}
-              </select>
-            </td>
-            <td>{{ nomination.nominate_end }}</td>
-            <td><input type="submit" value="Submit"/></td>
-          </tr>
-        </form>
+  <h1>Elections</h1>
+  {% for nomination in nominating %}
+    <div id="election">
+      <div id="title">
+        <h2>{{ nomination.election.position }}</h2>
+        Status: <b style="color:#A00000">Nominating</b><br/>
+        Nominations Close: {{ nomination.nominate_end|date:"M d," }}
+        {{ nomination.nominate_end|time:"h:i A" }}
+      </div>
+      <b>Nominees:</b><br/>
+        <ul>
+        {% for nominee in nomination.nominees %}
+          <li>{{ nominee.username }}</li>
         {% endfor %}
-      </thead>
-    </table>
-  {% endif %}
+        </ul>
+      {% if not nomination.has_nominated %}
+      <form action="/elections" method="post">
+        <input type="hidden" name="election" value="{{ nomination.election.key }}"/>
+          <select name="nomination">
+            {% for member in nomination.eligible %}
+            <option value="{{ member.key }}">{{ member.username }}</option>
+            {% endfor %}
+          </select>
+          <input type="submit" value="Nominate"/>
+      </form>
+      {% endif %}
+    </div>
+  {% endfor %}
 
-  {% if voting %}
-    <h2>Currently Voting</h2>
-    <table class="vote">
-      <thead>
-        <tr>
-          <th>Position</th>
-          <th>Nominee</th>
-          <th></th>
-        </tr>
-        {% for election in voting %}
-        <form action="/vote" method="post">
-          <input type="hidden" name="election" value="{{ election.election.key }}"/>
-          <tr>
-            <td>{{ election.election.position }}</td>
-            <td>
-              <select name="vote">
-                {% for member in election.eligible %}
-                <option value="{{ member.key }}">{{ member.username }}</option>
-                {% endfor %}
-              </select>
-            </td>
-            <td><input type="submit" value="Submit"/></td>
-          </tr>
-        </form>
+  {% for vote in voting %}
+    <div id="election">
+      <div id="title">
+        <h2>{{ vote.election.position }}</h2>
+        Status: <b style="color:#A00000">Voting</b><br/>
+        Votes Close: {{ vote.vote_end|date:"M d," }}
+        {{ vote.vote_end|time:"h:i A" }}
+      </div>
+      <b>Nominees:</b><br/>
+        <ul>
+        {% for nominee in vote.eligible %}
+          <li>{{ nominee.username }}</li>
         {% endfor %}
-      </thead>
-    </table>
-  {% endif %}
+        </ul>
+      {% if not vote.has_voted %}
+      <form action="/elections" method="post">
+        <input type="hidden" name="election" value="{{ vote.election.key }}"/>
+          <select name="vote">
+            {% for member in vote.eligible %}
+            <option value="{{ member.key }}">{{ member.username }}</option>
+            {% endfor %}
+          </select>
+          <input type="submit" value="Vote"/>
+      </form>
+      {% endif %}
+    </div>
+  {% endfor %}
 {% endblock %}
