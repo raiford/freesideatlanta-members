@@ -72,6 +72,13 @@ class FreesideHandler(webapp.RequestHandler):
                     "WHERE active = TRUE")
     return q
 
+  def GetMemberByUsername(self, username):
+    """Return the member based on the username."""
+    q = db.GqlQuery("SELECT * FROM Member " +
+                    "WHERE username = :1 " +
+                    "LIMIT 1", username)
+    return q.get()
+
 
 class LoginPage(FreesideHandler):
   """The login page request handler."""
@@ -224,35 +231,52 @@ class MembersList(FreesideHandler):
     self.RenderTemplate('members.html', template_values)
 
 
+class Profile(FreesideHandler):
+  """Display the details about a member."""
+  def get(self, username):
+    self.CheckAuth()
+    member = self.GetMemberByUsername(username=username)
+    if not member:
+      self.redirect('/members')
+    isuser = (self.session['user'].key() == member.key())
+    if self.request.get('mode') == 'edit':
+      edit = True
+    else:
+      edit = False
+
+    template_values = {'member': member,
+                       'isuser': isuser,
+                       'edit': edit}
+    self.RenderTemplate('profile.html', template_values)
+
+
 class Elections(FreesideHandler):
   """Serve the voting page."""
   def GetOfficerElections(self):
     """Return a list of current officer elections."""
-    now = datetime.datetime.now(timezones.UTC())
-    q = db.GqlQuery("SELECT * FROM OfficerElection " +
-                    "WHERE vote_end >= DATETIME(:1) " +
-                    "ORDER BY vote_end",
-                    str(now).split('.')[0])
-    # get rid of any elections that have not started.
+    #now = datetime.datetime.now(timezones.UTC())
+    #q = db.GqlQuery("SELECT * FROM OfficerElection " +
+    #                "WHERE vote_end >= DATETIME(:1) " +
+    #                "ORDER BY vote_end",
+    #                str(now).split('.')[0])
+    q = freesidemodels.OfficerElection.all()
     officer_elections = []
     for election in q:
-      if election.nominate_start.replace(tzinfo=timezones.UTC()) < now:
-        officer_elections.append(election)
+      officer_elections.append(election)
 
     return officer_elections
 
   def GetBoardElections(self):
     """Return a list of current board elections."""
-    now = datetime.datetime.now(timezones.UTC())
-    q = db.GqlQuery("SELECT * FROM BoardElection " +
-                    "WHERE vote_end >= DATETIME(:1) " +
-                    "ORDER BY vote_end",
-                    str(now).split('.')[0])
-    # get rid of any elections that have not started.
+    #now = datetime.datetime.now(timezones.UTC())
+    #q = db.GqlQuery("SELECT * FROM BoardElection " +
+    #                "WHERE vote_end >= DATETIME(:1) " +
+    #                "ORDER BY vote_end",
+    #                str(now).split('.')[0])
+    q = freesidemodels.BoardElection.all()
     board_elections = []
     for election in q:
-      if election.nominate_start.replace(tzinfo=timezones.UTC()) < now:
-        board_elections.append(election)
+      board_elections.append(election)
 
     return board_elections
 
@@ -350,6 +374,7 @@ class Elections(FreesideHandler):
 
     voting = []
     nominating = []
+    ended = []
     user = self.session['user']
     # Sort current elections by voting and nominating
     for election in current_elections:
@@ -371,17 +396,31 @@ class Elections(FreesideHandler):
                            'nominate_end': nominate_end.astimezone(timezones.Eastern()),
                            'nominees': nominees,
                            'has_nominated': has_nominated})
-      elif vote_start < now < vote_end and user.key():
+      elif vote_start < now < vote_end:
         eligible = []
-        has_voted = user.key() in elections.voters
+        has_voted = user.key() in election.voters
         for nominee in election.nominees:
             eligible.append(db.get(nominee))
         voting.append({'election': election,
                        'eligible': eligible,
+                       'has_voted': has_voted,
                        'vote_end': vote_end.astimezone(timezones.Eastern())})
+      elif vote_end < now:
+        total_votes = len(election.votes)
+        vote_totals = {}
+        for vote in election.votes:
+          member = db.get(vote)
+          if member.username in vote_totals:
+            vote_totals[member.username] += 1
+          else:
+            vote_totals[member.username] = 1
+        ended.append({'election': election,
+                      'totals': vote_totals,
+                      'vote_end': vote_end.astimezone(timezones.Eastern())})
 
     template_values = {'voting': voting,
-                       'nominating': nominating,}
+                       'nominating': nominating,
+                       'ended': ended}
     self.RenderTemplate('vote.html', template_values)
 
   def post(self):
@@ -414,6 +453,7 @@ application = webapp.WSGIApplication([('/', HomePage),
                                       ('/home', HomePage),
                                       ('/admin', AdminPage),
                                       ('/members', MembersList),
+                                      (r'/members/(.*)', Profile),
                                       ('/logout', Logout),
                                       ('/elections', Elections),],
                                      debug=True)

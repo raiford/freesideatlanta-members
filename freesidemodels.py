@@ -32,6 +32,8 @@ class Member(Person):
   doormusic = db.BlobProperty()
   liability = db.BooleanProperty(default=False)
   liabilitypdf = db.BlobProperty()
+  picture = db.BlobProperty()
+  website = db.StringProperty()
 
 
 class Election(db.Model):

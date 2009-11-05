@@ -1,21 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}Freeside Members List{% endblock %}
+{% block title %}Freeside Members{% endblock %}
 
 {% block content %}
-  <h1>Members List</h1>
-  <table class="member-list">
-    <tr>
-      <td><b>Username</b></td>
-      <td><b>Email</b></td>
-      <td><b>Member Since</b></td>
-    </tr>
-    {% for member in members %}
-    <tr>
-      <td>{{ member.username }}</td>
-      <td>{{ member.email }}</td>
-      <td>{{ member.join_date }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+  <h1>Current Members</h1>
+  <div id="member-list">
+    <table>
+      <thead>
+      <tr>
+        <td class="username"><b>Username</b></td>
+        <td class="email"><b>Email</b></td>
+        <td class="membersince"><b>Member Since</b></td>
+      </tr>
+      </thead>
+      <tbody>
+      {% for member in members %}
+      <tr>
+        <td class="username"><a href="/members/{{ member.username|urlencode }}">
+            {{ member.username }}</a></td>
+        <td class="email"><a href="mailto:{{ member.email }}">{{ member.email }}</a></td>
+        <td class="membersince">{{ member.join_date }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

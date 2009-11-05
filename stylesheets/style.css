@@ -108,3 +108,38 @@ body{
   padding: 5px;
 }
 
+#member-list{
+  display: block;
+  margin-top: 15px;
+}
+
+#member-list table{
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#member-list table tbody tr{
+  border-bottom: 1px solid;
+  border-top: 1px solid;
+}
+
+#member-list table tbody td{
+  height: 30px;
+}
+
+#member-list td.username{
+  padding-left: 15px;
+}
+
+#profile-details {
+  margin-top: 15px;
+}
+
+#profile-details div{
+  display: block;
+}
+
+#profile-details .profile-label {
+  color: #404040;
+  font-weight: bold;
+}

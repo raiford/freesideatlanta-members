@@ -59,4 +59,21 @@
       {% endif %}
     </div>
   {% endfor %}
+
+  {% for vote in ended %}
+    <div id="election">
+      <div id="title">
+        <h2>{{ vote.election.position }}</h2>
+        Status: <b style="color:#A00000">Ended</b><br/>
+        Voting Ended: {{ vote.vote_end|date:"M d," }}
+        {{ vote.vote_end|time:"h:i A" }}
+      </div>
+      <b>Totals:</b><br/>
+        <ul>
+        {% for member in vote.totals %}
+          <li>{{ member }}:  {{ vote.totals.member }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+  {% endfor %}
 {% endblock %}

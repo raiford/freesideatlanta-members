@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Freeside Member: {{ member.username }}{% endblock %}
+
+{% block content %}
+<h1>{{ member.username }}</h1>
+<span id="profile-membersince">Member since: {{ member.joined|date:"M Y" }}</span>
+<div id="profile-details">
+{% if edit %}
+{# edit form goes here #}
+{% else %}
+  <div id="profile-name">
+    <span class="profile-label">Name:  </span>
+    <span class="profile-data">{{ member.firstname }} {{ member.lastname }}</span>
+  </div>
+  <div id="profile-email">
+    <span class="profile-label">Email:  </span>
+    <span class="profile-data"><a href="mailto:{{ member.email|urlencode }}">{{ member.email }}</a></span>
+  </div>
+  {% for email in member.altemails %}
+  <div id="profile-email">
+    <span class="profile-label">Email:  </span>
+    <span class="profile-data"><a href="mailto:{{ email|urlencode }}">{{ email }}</a></span>
+  </div>
+  {% endfor %}
+  {% if member.phone %}
+  <div id="profile-phone">
+    <span class="profile-label">Phone:  </span>
+    <span class="profile-data">{{ member.phone }}</span>
+  </div>
+  {% endif %}
+  {% for phone in member.altphones %}
+  <div id="profile-phone">
+    <span class="profile-label">Phone:  </span>
+    <span class="profile-data">{{ phone }}</span>
+  </div>
+  {% endfor %}
+{% endif %}
+</div>
+
+{% endblock %}
