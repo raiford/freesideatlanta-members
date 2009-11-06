@@ -1,6 +1,7 @@
 import os
 import hashlib
 import datetime
+import operator
 import sys
 from random import shuffle
 
@@ -30,7 +31,7 @@ class FreesideHandler(webapp.RequestHandler):
   """Request Handler with some common functions."""
   def __init__(self):
     super(FreesideHandler, self).__init__()
-    self.session = Session(set_cookie_expires=False)
+    self.session = Session()
 
   def GetSideBar(self):
     """Generate the sidebar list."""
@@ -58,13 +59,10 @@ class FreesideHandler(webapp.RequestHandler):
     self.response.out.write(template.render(path, template_values))
 
   def CheckAuth(self):
-    if 'user' not in self.session:
-      self.redirect('/login')
+    return ('user' in self.session)
 
   def CheckAdmin(self):
-    self.CheckAuth()
-    if not self.session['user'].admin:
-      self.redirect('/home')
+    return self.session['user'].admin
 
   def GetActiveMembers(self):
     """Return a query object with all active members."""
@@ -195,7 +193,12 @@ class AdminPage(FreesideHandler):
 
 
   def get(self):
-    self.CheckAdmin()
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
+    if not self.CheckAdmin():
+      self.redirect('/home')
+      return
     template_values = {'admintasks': self.admintasks}
     task =  self.request.get('task')
     template_values.update({'admintask': task})
@@ -215,7 +218,9 @@ class AdminPage(FreesideHandler):
 class HomePage(FreesideHandler):
   """The default landing page."""
   def get(self):
-    self.CheckAuth()
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
     template_values = {}
     self.RenderTemplate('base.html', template_values)
 
@@ -223,7 +228,9 @@ class HomePage(FreesideHandler):
 class MembersList(FreesideHandler):
   """The Members List."""
   def get(self):
-    self.CheckAuth()
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
 
     q = db.GqlQuery("SELECT * FROM Member " +
                     "WHERE active = True")
@@ -234,7 +241,9 @@ class MembersList(FreesideHandler):
 class Profile(FreesideHandler):
   """Display the details about a member."""
   def get(self, username):
-    self.CheckAuth()
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
     member = self.GetMemberByUsername(username=username)
     if not member:
       self.redirect('/members')
@@ -366,7 +375,9 @@ class Elections(FreesideHandler):
     db.run_in_transaction(self._VoteTransaction, election_key, vote_key)
 
   def get(self):
-    self.CheckAuth()
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
     now = datetime.datetime.now(timezones.UTC())
     current_elections = []
     current_elections.extend(self.GetOfficerElections())
@@ -415,7 +426,9 @@ class Elections(FreesideHandler):
           else:
             vote_totals[member.username] = 1
         ended.append({'election': election,
-                      'totals': vote_totals,
+                      'totals': sorted(vote_totals.iteritems(),
+                                       key=operator.itemgetter(1),
+                                       reverse=True),
                       'vote_end': vote_end.astimezone(timezones.Eastern())})
 
     template_values = {'voting': voting,
@@ -424,7 +437,9 @@ class Elections(FreesideHandler):
     self.RenderTemplate('vote.html', template_values)
 
   def post(self):
-    self.CheckAuth()
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
     arguments = self.request.arguments()
     vote = self.request.get('vote')
     nomination = self.request.get('nomination')
@@ -444,7 +459,6 @@ class Elections(FreesideHandler):
 class Logout(FreesideHandler):
   """Log the user out."""
   def get(self):
-    self.CheckAuth()
     self.session.delete()
     self.redirect('/login')
 

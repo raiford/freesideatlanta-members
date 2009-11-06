@@ -8,14 +8,14 @@
     <div id="election">
       <div id="title">
         <h2>{{ nomination.election.position }}</h2>
-        Status: <b style="color:#A00000">Nominating</b><br/>
+        Status: <b style="color:#66CC66">Nominating</b><br/>
         Nominations Close: {{ nomination.nominate_end|date:"M d," }}
         {{ nomination.nominate_end|time:"h:i A" }}
       </div>
       <b>Nominees:</b><br/>
         <ul>
         {% for nominee in nomination.nominees %}
-          <li>{{ nominee.username }}</li>
+          <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
         {% endfor %}
         </ul>
       {% if not nomination.has_nominated %}
@@ -36,14 +36,14 @@
     <div id="election">
       <div id="title">
         <h2>{{ vote.election.position }}</h2>
-        Status: <b style="color:#A00000">Voting</b><br/>
+        Status: <b style="color:#66CC66">Voting</b><br/>
         Votes Close: {{ vote.vote_end|date:"M d," }}
         {{ vote.vote_end|time:"h:i A" }}
       </div>
       <b>Nominees:</b><br/>
         <ul>
         {% for nominee in vote.eligible %}
-          <li>{{ nominee.username }}</li>
+          <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
         {% endfor %}
         </ul>
       {% if not vote.has_voted %}
@@ -70,8 +70,8 @@
       </div>
       <b>Totals:</b><br/>
         <ul>
-        {% for member in vote.totals %}
-          <li>{{ member }}:  {{ vote.totals.member }}</li>
+        {% for node in vote.totals %}
+        <li><a href="/members/{{ node.0 }}">{{ node.0 }}</a>:  {{ node.1 }}</li>
         {% endfor %}
         </ul>
     </div>
