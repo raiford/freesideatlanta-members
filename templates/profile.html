@@ -10,6 +10,11 @@
 {# Edit Profile #}
 <form action="/members/{{ member.username|urlencode }}" onsubmit="return checkProfileForm(this)" method="post">
   <div class="profile-item">
+    <div class="profile-label">Username:  </div>
+    <div class="profile-input">
+      <input type="text" name= "username" value="{{ member.username }}" />
+    </div>
+  <div class="profile-item">
     <div class="profile-label">First Name:  </div>
     <div class="profile-input">
       <input type="text" name= "firstname" value="{{ member.firstname }}" />

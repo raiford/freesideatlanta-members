@@ -9,7 +9,6 @@ class Person(db.Model):
   """Base person class.  Necessary in the case of non-member board nominees."""
   firstname = db.StringProperty()
   lastname = db.StringProperty()
-  #TODO validator method to prevent duplicate usernames
   username = db.StringProperty(required=True)
   email = db.EmailProperty(required=True)
   altemails = db.ListProperty(item_type=db.Email)

@@ -283,6 +283,7 @@ class Profile(FreesideHandler):
       self.redirect('/login')
       return
     member = self.GetMemberByUsername(username)
+    newusername = self.request.get('username')
     firstname = self.request.get('firstname')
     lastname = self.request.get('lastname')
     email = self.request.get('email')
@@ -298,6 +299,14 @@ class Profile(FreesideHandler):
       else:
         modify['password'] = hashlib.sha256(newpass).digest()
 
+    if newusername != member.username:
+      if self.GetMemberByUsername(newusername) == None:
+        modify['username'] = newusername
+      else:
+        template_values = {'errortxt': 'Requested username is already in use.'}
+        self.RenderTemplate('error.html', template_values)
+        return
+      
     if firstname != member.firstname:
       modify['firstname'] = firstname
     if lastname != member.lastname:

@@ -13,6 +13,10 @@ handlers:
 - url: /scripts
   static_dir: scripts
 
+- url: /remote_api
+  script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
+  login: admin
+
 - url: /.*
   script: freeside.py
   secure: always
