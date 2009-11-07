@@ -8,6 +8,7 @@ import string
 import hashlib
 
 import freesidemodels
+import member_util
 
 
 NAMES = (
@@ -45,7 +46,7 @@ def Password():
     return hashlib.sha256(password).digest()
 
 
-def _PersonDict(active=True, admin=False):
+def PersonDict(active=True, admin=False):
     """Creates a dict containing key/value pairs for a freesidemodels.Person.
 
     Returns:
@@ -65,7 +66,7 @@ def Person(active=True, admin=False):
     """Creates a random person.
 
     """
-    return freesidemodels.Person(**_PersonDict(active=active, admin=admin))
+    return freesidemodels.Person(**PersonDict(active=active, admin=admin))
 
 
 def Member(active=True, admin=False, starving=False):
@@ -76,7 +77,7 @@ def Member(active=True, admin=False, starving=False):
     Returns:
       freesidemodels.Member
     """
-    return freesidemodels.Member(
+    return member_util.MakeMember(
         starving=starving,
         rfid=random.randint(0, 1000),
-        **_PersonDict(active=active, admin=admin))
+        **PersonDict(active=active, admin=admin))

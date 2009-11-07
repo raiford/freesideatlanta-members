@@ -2,6 +2,8 @@
 
 """Datastore models for Freeside Atlanta's Member Portal."""
 
+import hashlib
+
 from google.appengine.ext import db
 
 
@@ -22,6 +24,17 @@ class Person(db.Model):
   admin = db.BooleanProperty(default=False)
   joined = db.DateProperty()
   left = db.DateProperty()
+
+  @staticmethod
+  def EncryptPassword(password):
+    """Encrypts a password using SHA-256 encoding.
+
+    Args:
+      password: str, password to encrypt.
+    Returns:
+      str, encrypted password.
+    """
+    return hashlib.sha256(password).digest()
 
 
 class Member(Person):
@@ -52,6 +65,11 @@ class Election(db.Model):
   # Unique list of member keys to prevent double voting.
   nominators = db.ListProperty(item_type=db.Key)
   voters = db.ListProperty(item_type=db.Key)
+
+
+def GetAllElectionTypes():
+  """Gets all valid election types."""
+  return Election.__subclasses__()
 
 
 class OfficerElection(Election):
