@@ -139,7 +139,7 @@ class LoginPage(FreesideHandler):
 
     hashedpass = freesidemodels.Person.EncryptPassword(
       self.request.get('password'))
-    if user and hashedpass == user.password
+    if user and hashedpass == user.password:
       self.session['user'] = user
       self.redirect('/home')
     else:
@@ -211,7 +211,7 @@ class AdminPage(FreesideHandler):
   def get(self):
     self.RenderTemplate(
       'admin.html',
-      {'admintasks': self.admintasks
+      {'admintasks': self.admintasks,
        'admintask': self.request.get('task'),
        'electiontypes': self.electiontypes,
        'positions': self.positions})
@@ -259,7 +259,7 @@ class Profile(FreesideHandler):
 
     user = self.session['user']
     edit = self.request.get('mode') == 'edit'
-    if edit and user.key() == member.key() or user.admin
+    if edit and user.key() == member.key() or user.admin:
       edit = True
     else:
       edit = False
