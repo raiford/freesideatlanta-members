@@ -77,6 +77,24 @@ class FreesideHandler(webapp.RequestHandler):
                     "LIMIT 1", username)
     return q.get()
 
+  def _ModifyMember(self, member, modify):
+    """Transaction method for modifying a member.
+
+    Args:
+      member = The Member object to modify
+      modiry =  a dict() of keys and values to modify
+
+    Raises:
+      db.RollBack
+    """
+    for key,value in modify.items():
+      if hasattr(member, key):
+        setattr(member, key, value)
+      else:
+        raise AttributeError('Member %s does not have attr %s' % (member.username, key))
+
+    member.put()
+
 
 class LoginPage(FreesideHandler):
   """The login page request handler."""
@@ -244,19 +262,56 @@ class Profile(FreesideHandler):
     if not self.CheckAuth():
       self.redirect('/login')
       return
-    member = self.GetMemberByUsername(username=username)
+    member = self.GetMemberByUsername(username)
     if not member:
       self.redirect('/members')
-    isuser = (self.session['user'].key() == member.key())
-    if self.request.get('mode') == 'edit':
+    canedit = ((self.session['user'].key() == member.key()) or 
+        self.session['user'].admin)
+    if canedit and self.request.get('mode') == 'edit':
       edit = True
     else:
       edit = False
 
     template_values = {'member': member,
-                       'isuser': isuser,
+                       'canedit': canedit,
                        'edit': edit}
     self.RenderTemplate('profile.html', template_values)
+
+  def post(self, username):
+    """Modify a User."""
+    if not self.CheckAuth():
+      self.redirect('/login')
+      return
+    member = self.GetMemberByUsername(username)
+    firstname = self.request.get('firstname')
+    lastname = self.request.get('lastname')
+    email = self.request.get('email')
+    currentpass = self.request.get('currentpass')
+    newpass = self.request.get('newpass')
+    modify = {}
+
+    if currentpass and newpass:
+      if hashlib.sha256(currentpass).digest() != member.password:
+        template_values = {'errortxt': 'Incorrect Password. Please try again.'}
+        self.RenderTemplate('error.html', template_values)
+        return
+      else:
+        modify['password'] = hashlib.sha256(newpass).digest()
+
+    if firstname != member.firstname:
+      modify['firstname'] = firstname
+    if lastname != member.lastname:
+      modify['lastname'] = lastname
+    if email != str(member.email):
+      modify['email'] = email
+
+    try:
+      db.run_in_transaction(self._ModifyMember, member, modify)
+    except AttributeError:
+      self.error(500)
+      return
+
+    self.redirect('/members/%s' % member.username)
 
 
 class Elections(FreesideHandler):

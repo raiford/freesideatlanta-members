@@ -135,11 +135,22 @@ body{
   margin-top: 15px;
 }
 
-#profile-details div{
+#profile-details .profile-item{
   display: block;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 #profile-details .profile-label {
   color: #404040;
   font-weight: bold;
+  text-align: right;
+  width: 170px;
+  display: inline;
 }
+
+#profile-details .profile-input,.profile-data{
+  padding-left: 10px;
+  display: inline;
+}
+

@@ -4,6 +4,7 @@
 <head>
   <link rel="stylesheet" href="/stylesheets/style.css" />
   <title>{% block title %}Freeside Members Page{% endblock %}</title>
+  <script type="text/javascript" src="/scripts/freeside.js"></script>
 </head>
 
 <body>
@@ -13,7 +14,8 @@
     </div>
     <div id="navbar">
       <ul>
-        <li>Welcome, {{ user.username }}!</li> <b>|</b>
+        <li>Welcome, <a href="/members/{{ user.username }}">
+          {{ user.username }}</a></li> <b>|</b>
         <li><a href="/logout">Logout</a></li>
       </ul>
     </div>

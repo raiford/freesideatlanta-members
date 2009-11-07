@@ -10,5 +10,9 @@ handlers:
 - url: /stylesheets
   static_dir: stylesheets
 
+- url: /scripts
+  static_dir: scripts
+
 - url: /.*
   script: freeside.py
+  secure: always

@@ -7,34 +7,77 @@
 <span id="profile-membersince">Member since: {{ member.joined|date:"M Y" }}</span>
 <div id="profile-details">
 {% if edit %}
-{# edit form goes here #}
+{# Edit Profile #}
+<form action="/members/{{ member.username|urlencode }}" onsubmit="return checkProfileForm(this)" method="post">
+  <div class="profile-item">
+    <div class="profile-label">First Name:  </div>
+    <div class="profile-input">
+      <input type="text" name= "firstname" value="{{ member.firstname }}" />
+    </div>
+  </div>
+  <div class="profile-item">
+    <div class="profile-label">Last Name:  </div>
+    <div class="profile-input">
+      <input type="text" name= "lastname" value="{{ member.lastname }}" />
+    </div>
+  </div>
+  <div class="profile-item">
+    <div class="profile-label">Email:  </div>
+    <div class="profile-input">
+      <input type="text" name= "email" value="{{ member.email }}" />
+    </div>
+  </div>
+  <div class="profile-item">
+    <div class="profile-label">Current Password:  </div>
+    <div class="profile-input">
+      <input type="password" name= "currentpass"/>
+    </div>
+  </div>
+  <div class="profile-item">
+    <div class="profile-label">New Password:  </div>
+    <div class="profile-input">
+      <input type="password" name= "newpass"/>
+    </div>
+  </div>
+  <div class="profile-item">
+    <div class="profile-label">Re-type Password:  </div>
+    <div class="profile-input">
+      <input type="password" name= "newpassrepeat"/>
+    </div>
+  </div>
+  <input type="submit" value="Submit"/>
+</form>
 {% else %}
-  <div id="profile-name">
+{# View Profile #}
+  <div class="profile-item">
     <span class="profile-label">Name:  </span>
     <span class="profile-data">{{ member.firstname }} {{ member.lastname }}</span>
   </div>
-  <div id="profile-email">
+  <div class="profile-item">
     <span class="profile-label">Email:  </span>
     <span class="profile-data"><a href="mailto:{{ member.email|urlencode }}">{{ member.email }}</a></span>
   </div>
   {% for email in member.altemails %}
-  <div id="profile-email">
+  <div class="profile-item">
     <span class="profile-label">Email:  </span>
     <span class="profile-data"><a href="mailto:{{ email|urlencode }}">{{ email }}</a></span>
   </div>
   {% endfor %}
   {% if member.phone %}
-  <div id="profile-phone">
+  <div class="profile-item">
     <span class="profile-label">Phone:  </span>
     <span class="profile-data">{{ member.phone }}</span>
   </div>
   {% endif %}
   {% for phone in member.altphones %}
-  <div id="profile-phone">
+  <div class="profile-item">
     <span class="profile-label">Phone:  </span>
     <span class="profile-data">{{ phone }}</span>
   </div>
   {% endfor %}
+  {% if canedit %}
+  <br/><a href="/members/{{ member.username }}?mode=edit">Edit</a>
+  {% endif %}
 {% endif %}
 </div>
 
