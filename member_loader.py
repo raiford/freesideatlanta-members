@@ -31,8 +31,8 @@ class MemberLoader(bulkloader.Loader):
       'Member',
       [('username', str),
        ('email', db.Email),
-       ('active', lambda x : x == 'TRUE'),
-       ('starving', truefalse),
+       ('active', str_to_bool),
+       ('starving', str_to_bool),
        ('joined', lambda x: datetime.datetime.strptime(x, '%m/%d/%Y').date()),
        ('rfid', int),
        ('password', random_util.Password)])
