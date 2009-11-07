@@ -35,7 +35,7 @@ class MemberLoader(bulkloader.Loader):
        ('starving', str_to_bool),
        ('joined', lambda x: datetime.datetime.strptime(x, '%m/%d/%Y').date()),
        ('rfid', int),
-       ('password', random_util.Password)])
+       ('password', lambda x: random_util.Password())])
 
 
 loaders = [MemberLoader]
