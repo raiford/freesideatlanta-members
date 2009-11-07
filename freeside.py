@@ -3,6 +3,7 @@ import hashlib
 import datetime
 import operator
 import sys
+import urllib
 from random import shuffle
 
 from google.appengine.ext import webapp
@@ -73,8 +74,7 @@ class FreesideHandler(webapp.RequestHandler):
   def GetMemberByUsername(self, username):
     """Return the member based on the username."""
     q = db.GqlQuery("SELECT * FROM Member " +
-                    "WHERE username = :1 " +
-                    "LIMIT 1", username)
+                    "WHERE username = '%s' LIMIT 1" % username)
     return q.get()
 
   def _ModifyMember(self, member, modify):
@@ -259,12 +259,14 @@ class MembersList(FreesideHandler):
 class Profile(FreesideHandler):
   """Display the details about a member."""
   def get(self, username):
+    username = urllib.unquote(username)
     if not self.CheckAuth():
       self.redirect('/login')
       return
     member = self.GetMemberByUsername(username)
     if not member:
       self.redirect('/members')
+      return
     canedit = ((self.session['user'].key() == member.key()) or 
         self.session['user'].admin)
     if canedit and self.request.get('mode') == 'edit':
@@ -528,12 +530,12 @@ class Logout(FreesideHandler):
 
 application = webapp.WSGIApplication([('/', HomePage),
                                       ('/login', LoginPage),
-                                      ('/home', HomePage),
-                                      ('/admin', AdminPage),
-                                      ('/members', MembersList),
+                                      (r'/home/?', HomePage),
+                                      (r'/admin/?', AdminPage),
+                                      (r'/members/?', MembersList),
                                       (r'/members/(.*)', Profile),
                                       ('/logout', Logout),
-                                      ('/elections', Elections),],
+                                      (r'/elections/?', Elections),],
                                      debug=True)
 
 def main():

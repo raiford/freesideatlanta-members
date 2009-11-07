@@ -2,8 +2,6 @@ from datetime import datetime
 
 from google.appengine.ext import db
 
-from appengine_utilities.sessions import Session
-
 
 class Person(db.Model):
   """Base person class.  Necessary in the case of non-member board nominees."""
@@ -19,8 +17,8 @@ class Person(db.Model):
   password = db.BlobProperty(required=True)
   active = db.BooleanProperty(default=True)
   admin = db.BooleanProperty(default=False)
-  joined = db.DateTimeProperty()
-  left = db.DateTimeProperty()
+  joined = db.DateProperty()
+  left = db.DateProperty()
 
 
 class Member(Person):

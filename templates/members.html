@@ -18,8 +18,8 @@
       <tr>
         <td class="username"><a href="/members/{{ member.username|urlencode }}">
             {{ member.username }}</a></td>
-        <td class="email"><a href="mailto:{{ member.email }}">{{ member.email }}</a></td>
-        <td class="membersince">{{ member.join_date }}</td>
+        <td class="email"><a href="mailto:{{ member.email|urlencode }}">{{ member.email }}</a></td>
+        <td class="membersince">{{ member.joined }}</td>
       </tr>
       {% endfor %}
       </tbody>
