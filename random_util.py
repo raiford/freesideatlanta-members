@@ -35,7 +35,7 @@ def _NameAttributes(name):
         'email': '%s@domain.com' % username}
 
 
-def RandomPassword():
+def Password():
     """Generates a sha256-encoded random ten letter password.
 
     Returns:
@@ -54,21 +54,21 @@ def _PersonDict(active=True, admin=False):
     # TODO(dknowles): Populate "left" if active is False
     name_dict = _NameAttributes(random.choice(NAMES))
     name_dict.update(
-        {'password': RandomPassword(),
+        {'password': Password(),
          'active': active,
          'admin': admin,
          'joined': datetime.date(2009, 01, 15)})
     return name_dict
 
 
-def RandomPerson(active=True, admin=False):
+def Person(active=True, admin=False):
     """Creates a random person.
 
     """
     return freesidemodels.Person(**_PersonDict(active=active, admin=admin))
 
 
-def RandomMember(active=True, admin=False, starving=False):
+def Member(active=True, admin=False, starving=False):
     """Creates a random member.
 
     This does not add the member to datastore.

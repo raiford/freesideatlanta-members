@@ -25,7 +25,7 @@ class RandomUtilTestCase(unittest.TestCase):
 
     def testRandomPerson(self):
         # make sure it doesn't asplode
-        person = random_util.RandomPerson()
+        person = random_util.Person()
         self.assertTrue(person.active)
         self.assertFalse(person.admin)
         self.assertTrue(
@@ -35,7 +35,7 @@ class RandomUtilTestCase(unittest.TestCase):
 
     def testRandomMember(self):
         # make sure it doesn't asplode
-        member = random_util.RandomMember(active=False, admin=True)
+        member = random_util.Member(active=False, admin=True)
         self.assertFalse(member.active)
         self.assertTrue(member.admin)
         self.assertFalse(member.starving)
