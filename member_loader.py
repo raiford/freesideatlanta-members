@@ -3,14 +3,12 @@
 """Bulk loader for loading members into datastore."""
 
 import datetime
-import hashlib
-import random
-import string
 
 from google.appengine.ext import db
 from google.appengine.tools import bulkloader
 
 import freesidemodels
+import random_util
 
 
 def str_to_bool(s):
@@ -22,16 +20,6 @@ def str_to_bool(s):
     bool
   """
   return s == 'TRUE'
-
-
-def random_password():
-  """Generates a sha256-encoded random ten letter password.
-
-  Returns:
-    str, sha256-encoded random ten letter password.
-  """
-  password = ''.join(random.sample(string.lowercase + string.digits, 10))
-  return hashlib.sha256(password).digest()
 
 
 class MemberLoader(bulkloader.Loader):
@@ -47,7 +35,7 @@ class MemberLoader(bulkloader.Loader):
        ('starving', truefalse),
        ('joined', lambda x: datetime.datetime.strptime(x, '%m/%d/%Y').date()),
        ('rfid', int),
-       ('password', random_password)])
+       ('password', random_util.RandomPassword)])
 
 
 loaders = [MemberLoader]
