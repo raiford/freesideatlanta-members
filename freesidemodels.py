@@ -69,7 +69,7 @@ class Election(db.Model):
 
 def GetAllElectionTypes():
   """Gets all valid election types."""
-  return Election.__subclasses__()
+  return [s.__name__ for s in Election.__subclasses__()]
 
 
 class OfficerElection(Election):
