@@ -1,79 +1,95 @@
 {% extends "base.html" %}
 
-{% block title %}Freeside Voting Page{% endblock %}
+{% block title %}Elections{% endblock %}
 
 {% block content %}
-  <h1>Elections</h1>
+  <h1>Current elections</h1>
+
+  {% if not nominating and not voting %}
+    <p>No elections being held at this time.</p>
+  {% endif %}
+
   {% for nomination in nominating %}
-    <div id="election">
-      <div id="title">
+    <div class="election">
+      <div class="election-header">
         <h2>{{ nomination.election.position }}</h2>
         Status: <b style="color:#66CC66">Nominating</b><br/>
         Nominations Close: {{ nomination.nominate_end|date:"M d," }}
         {{ nomination.nominate_end|time:"h:i A" }}
       </div>
-      <b>Nominees:</b><br/>
-        <ul>
-        {% for nominee in nomination.nominees %}
-          <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
-        {% endfor %}
-        </ul>
-      {% if not nomination.has_nominated %}
-      <form action="/elections" method="post">
-        <input type="hidden" name="election" value="{{ nomination.election.key }}"/>
-          <select name="nomination">
-            {% for member in nomination.eligible %}
-            <option value="{{ member.key }}">{{ member.username }}</option>
-            {% endfor %}
-          </select>
-          <input type="submit" value="Nominate"/>
-      </form>
-      {% endif %}
+      <div class="election-body">
+        <b>Nominees:</b><br/>
+          <ul>
+          {% for nominee in nomination.nominees %}
+            <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
+          {% endfor %}
+          </ul>
+        {% if not nomination.has_nominated %}
+        <form action="/elections" method="post">
+          <input type="hidden" name="election" value="{{ nomination.election.key }}"/>
+            <select name="nomination">
+              {% for member in nomination.eligible %}
+              <option value="{{ member.key }}">{{ member.username }}</option>
+              {% endfor %}
+            </select>
+            <input type="submit" value="Nominate"/>
+        </form>
+        {% endif %}
+      </div>
     </div>
   {% endfor %}
 
   {% for vote in voting %}
-    <div id="election">
-      <div id="title">
+    <div class="election">
+      <div class="election-header">
         <h2>{{ vote.election.position }}</h2>
         Status: <b style="color:#66CC66">Voting</b><br/>
         Votes Close: {{ vote.vote_end|date:"M d," }}
         {{ vote.vote_end|time:"h:i A" }}
       </div>
-      <b>Nominees:</b><br/>
+      <div class="election-body">
+        <h3>Nominees:</h3>
         <ul>
-        {% for nominee in vote.eligible %}
-          <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
-        {% endfor %}
+          {% for nominee in vote.eligible %}
+            <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
+          {% endfor %}
         </ul>
-      {% if not vote.has_voted %}
-      <form action="/elections" method="post">
-        <input type="hidden" name="election" value="{{ vote.election.key }}"/>
-          <select name="vote">
-            {% for member in vote.eligible %}
-            <option value="{{ member.key }}">{{ member.username }}</option>
-            {% endfor %}
-          </select>
-          <input type="submit" value="Vote"/>
-      </form>
-      {% endif %}
+        {% if not vote.has_voted %}
+          <form action="/elections" method="post">
+            <input type="hidden" name="election" value="{{ vote.election.key }}"/>
+            <select name="vote">
+              {% for member in vote.eligible %}
+              <option value="{{ member.key }}">{{ member.username }}</option>
+              {% endfor %}
+            </select>
+            <input type="submit" value="Vote" />
+          </form>
+        {% endif %}
+      </div>
     </div>
   {% endfor %}
 
-  {% for vote in ended %}
-    <div id="election">
-      <div id="title">
-        <h2>{{ vote.election.position }}</h2>
-        Status: <b style="color:#A00000">Ended</b><br/>
-        Voting Ended: {{ vote.vote_end|date:"M d," }}
-        {{ vote.vote_end|time:"h:i A" }}
+  <div class="clear"></div>
+  <h1>Previous elections</h1>
+  <div>
+    {% if not ended %}
+      <p>No previous elections.</p>
+    {% endif %}
+    {% for vote in ended %}
+      <div class="election">
+        <div class="title">
+          <h2>{{ vote.election.position }}</h2>
+          Status: <b style="color:#A00000">Ended</b><br/>
+          Voting Ended: {{ vote.vote_end|date:"M d," }}
+          {{ vote.vote_end|time:"h:i A" }}
+        </div>
+        <b>Totals:</b><br/>
+          <ul>
+          {% for node in vote.totals %}
+          <li><a href="/members/{{ node.0 }}">{{ node.0 }}</a>:  {{ node.1 }}</li>
+          {% endfor %}
+          </ul>
       </div>
-      <b>Totals:</b><br/>
-        <ul>
-        {% for node in vote.totals %}
-        <li><a href="/members/{{ node.0 }}">{{ node.0 }}</a>:  {{ node.1 }}</li>
-        {% endfor %}
-        </ul>
-    </div>
-  {% endfor %}
+    {% endfor %}
+  </div>
 {% endblock %}
