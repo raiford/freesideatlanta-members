@@ -99,3 +99,14 @@ def GetMemberByEmail(email, active=True):
         return result[0]
     else:
         return None
+
+
+def IsActiveMember(person):
+    """Determines if the person is an active Freeside member.
+
+    Args:
+      person: freesidemodels.Person, person to check.
+    Returns:
+      bool, whether the person is an active Freeside member.
+    """
+    return isinstance(person, freesidemodels.Member) and person.active
