@@ -3,49 +3,182 @@
 {% block title %}Freeside Admin Page{% endblock %}
 
 {% block content %}
-  <ul>
-    {% for task in admintasks %}
-    <li><a href="/admin?&task={{ task|urlencode }}">{{ task }}</a></li>
-    {% endfor %}
-  </ul>
+  {% if not admintask %}
+    <ul>
+      {% for task in admintasks %}
+        <li><a href="/admin?&task={{ task.0|urlencode }}">{{ task.1 }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 
   {# Add member form #}
-  {% ifequal admintask "addmember" %}
-  <form action="/admin" method="post">
-    <input type="hidden" name="task" value="addmember"/>
-    First Name: <input type="text" name="firstname"/><br/>
-    Last Name: <input type="text" name="lastname"/><br/>
-    Username: <input type="text" name="username"/><br/>
-    Email: <input type="text" name="email"/><br/>
-    Starving?: <input type="checkbox" name="starving" value="True"/><br/>
-    Temp Password: <input type="text" name="password"/><br/>
-    <input type="submit" value="Submit"/>
-  </form>
+  {% ifequal admintask "AddMember" %}
+
+{% comment %}
+  {% ifequal admintask "AddMember" %}
+    <h1>Add new member</h1>
+    <form action="/admin" method="post">
+      <input type="hidden" name="task" value="AddMember"/>
+      <table>
+        <tbody>
+          {% for field in fields %}
+            <tr>
+              <td class="field-name">
+                <label for="{{ field.name }}">{{ field.verbose_name }}:</label>
+              </td>
+              <td>
+                <input type="{{ field.input_type }}"
+                       name="{{ field.name }}"
+                       id="{{ field.name }}" />
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <input type="submit" value="Submit"/>
+    </form>
+  {% endifequal %}
+{% endcomment %}
+
+    <h1>Add new member</h1>
+    <form action="/admin" method="post">
+      <input type="hidden" name="task" value="AddMember"/>
+      <table>
+        <tbody>
+          <tr>
+            <td class="field-name">
+              <label for="firstname">First name:</label>
+            </td>
+            <td><input type="text" name="firstname" id="firstname" /></td>
+          </tr>
+          <tr>
+            <td class="field-name">
+              Last Name:
+            </td>
+            <td><input type="text" name="lastname" /></td>
+          </tr>
+          <tr>
+            <td class="field-name">
+              Username:
+            </td>
+            <td><input type="text" name="username" /></td>
+          </tr>
+          <tr>
+            <td class="field-name">
+              Email:
+            </td>
+            <td><input type="text" name="email" /></td>
+          </tr>
+          <tr>
+            <td class="field-name">
+              <label for="starving">Starving?:</label>
+            </td>
+            <td>
+              <input type="checkbox"
+                     name="starving"
+                     id="starving"
+                     value="True" />
+            </td>
+          </tr>
+          <tr>
+            <td class="field-name">
+              Temp Password:
+            </td>
+            <td><input type="text" name="password" /></td>
+          </tr>
+        </tbody>
+      </table>
+      <input type="submit" value="Submit"/>
+    </form>
   {% endifequal %}
 
   {# create election form #}
-  {% ifequal admintask "addelection" %}
-  <form action="/admin" method="post">
-    <input type="hidden" name="task" value="addelection"/>
-    Election Type:
-    <select name="election_type">
-    {% for electiontype in electiontypes %}
-      <option value="{{ electiontype }}">{{ electiontype }}</option>
-    {% endfor %}
-    </select><br/>
-    Position:
-    <select name="position">
-    {% for position in positions %}
-      <option value="{{ position }}">{{ position }}</option>
-    {% endfor %}
-    </select><br/>
-    Nomination Start Date: <input type="text" name="nomination_start"/><br/>
-    Nomination End Date: <input type="text" name="nomination_end"/><br/>
-    Vote Start Date: <input type="text" name="vote_start"/><br/>
-    Vote End Date: <input type="text" name="vote_end"/><br/>
-    Descripion: <textarea value="description" rows="4" cols="20"></textarea><br/>
-    <input type="submit" value="Submit"/>
-  </form>
+  {% ifequal admintask "AddElection" %}
+    <h1>Add new election</h1>
+    <form action="/admin" method="post">
+      <input type="hidden" name="task" value="AddElection"/>
+
+      <table>
+        <tbody>
+          <tr>
+            <td class="field-name">
+              Election Type:
+            </td>
+            <td>
+              <select name="election_type">
+                {% for electiontype in electiontypes %}
+                  <option value="{{ electiontype }}">{{ electiontype }}</option>
+                {% endfor %}
+              </select><br/>
+            </td>
+          <tr>
+          </tr>
+            <td class="field-name">
+              Position:
+            </td>
+            <td>
+              <select name="position">
+                {% for position in positions %}
+                  <option value="{{ position }}">{{ position }}</option>
+                {% endfor %}
+              </select><br/>
+            </td>
+          <tr>
+          </tr>
+            <td class="field-name">
+              Nomination Start Date:
+            </td>
+            <td>
+              <input type="text"
+                     name="nomination_start"
+                     id="nomination_start" />
+            </td>
+          <tr>
+          </tr>
+            <td class="field-name">
+              Nomination End Date:
+            </td>
+            <td>
+              <input type="text" name="nomination_end" id="nomination_end" />
+            </td>
+          <tr>
+          </tr>
+            <td class="field-name">
+              Vote Start Date:
+            </td>
+            <td>
+              <input type="text" name="vote_start" id="vote_start" />
+            </td>
+          <tr>
+          </tr>
+            <td class="field-name">
+              Vote End Date:
+            </td>
+            <td>
+              <input type="text" name="vote_end" id="vote_end" />
+            </td>
+          <tr>
+          </tr>
+            <td class="field-name">
+              Descripion:
+            </td>
+            <td>
+              <textarea value="description" rows="4" cols="20"></textarea>
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>
+              <input type="submit" value="Submit" />
+              </td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+
+    {# TODO(dknowles): Move me to the header #}
+    <link rel="stylesheet" href="/stylesheets/third_party/closure/inputdatepicker.css" />
+    <script type="text/javascript" src="/scripts/add-election-bin.js"></script>
   {% endifequal %}
 
 {% endblock %}

@@ -1,38 +1,41 @@
+#!/usr/bin/env python
+
+"""Bulk loader for loading members into datastore."""
+
 import datetime
-import hashlib
-import random
 
 from google.appengine.ext import db
 from google.appengine.tools import bulkloader
+
 import freesidemodels
-
-def randompassword(x):
-  alphabet = 'abcdefghijklmnopqrstuvwxyz1234567890'
-  string=''
-  for x in random.sample(alphabet,10):
-    string+=x
-  return hashlib.sha256(string).digest()
+import random_util
 
 
+def str_to_bool(s):
+  """Casts a string like "TRUE" or "FALSE" into a bool.
 
-def truefalse(x):
-  if x == 'TRUE':
-    return True
-  else:
-    return False
+  Args:
+    s: str, boolean string--either "TRUE" or "FALSE"
+  Returns:
+    bool
+  """
+  return s == 'TRUE'
+
 
 class MemberLoader(bulkloader.Loader):
-  """Parse csv and upload it."""
+  """Parse CSV of members and upload it to datastore."""
+
   def __init__(self):
-    bulkloader.Loader.__init__(self, 'Member',
-                               [('username', str),
-                                ('email', db.Email),
-                                ('active', truefalse),
-                                ('starving', truefalse),
-                                ('joined', 
-                                  lambda x: datetime.datetime.strptime(x, '%m/%d/%Y').date()),
-                                ('rfid', int),
-                                ('password', randompassword),
-                               ])
+    bulkloader.Loader.__init__(
+      self,
+      'Member',
+      [('username', str),
+       ('email', db.Email),
+       ('active', str_to_bool),
+       ('starving', str_to_bool),
+       ('joined', lambda x: datetime.datetime.strptime(x, '%m/%d/%Y').date()),
+       ('rfid', int),
+       ('password', lambda x: random_util.Password())])
+
 
 loaders = [MemberLoader]

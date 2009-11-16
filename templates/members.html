@@ -1,28 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Freeside Members{% endblock %}
+{% block title %}Members{% endblock %}
 
 {% block content %}
-  <h1>Current Members</h1>
-  <div id="member-list">
-    <table>
-      <thead>
+  <h1>Current members</h1>
+  <table id="member-list-table">
+    <thead>
       <tr>
-        <td class="username"><b>Username</b></td>
-        <td class="email"><b>Email</b></td>
-        <td class="membersince"><b>Member Since</b></td>
+        <td>Username</td>
+        <td>Email</td>
+        <td>Member since</td>
       </tr>
-      </thead>
-      <tbody>
-      {% for member in members %}
+    </thead>
+    <tbody>
+    {% for member in members %}
       <tr>
-        <td class="username"><a href="/members/{{ member.username|urlencode }}">
+        <td><a href="/members/{{ member.username|urlencode }}">
             {{ member.username }}</a></td>
-        <td class="email"><a href="mailto:{{ member.email|urlencode }}">{{ member.email }}</a></td>
-        <td class="membersince">{{ member.joined }}</td>
+        <td><a href="mailto:{{ member.email|urlencode }}">{{ member.email }}</a></td>
+        <td>{{ member.joined }}</td>
       </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if admin %}
+    <div class="center">
+      <a href="/admin?task=AddMember">Add member</a>
+    </div>
+  {% endif %}
 {% endblock %}

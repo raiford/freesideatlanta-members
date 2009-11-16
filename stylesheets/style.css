@@ -1,142 +1,189 @@
 /* General Styles for Freeside */
 
-* {
+.field-name {
+  text-align: right;
+}
+
+/**
+ * Login page styles
+ */
+#login-form {
+  margin-top: 1em;
+}
+
+#login .container {
+  width: 250px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#login .field {
+  clear: left;
+  text-align: right;
+  width: 20em;
+}
+
+#login .label {
+  text-align: right;
+}
+
+/**
+ * Generic page styles
+ */
+
+.center {
+  text-align: center;
+}
+
+.clear {
+  clear: both;
+}
+
+#header {
+  padding: 0.5em;
+}
+
+#userbar {
+  display: block;
+  float: right;
   margin: 0;
   padding: 0;
 }
 
-body{
-  background-color: #E8E8E8;
-  font-family:Arial,Sans-serif;
+#userbar ul {
+  margin: 0;
+  padding: 0;
 }
 
-#header{
-  background-color: #FFFFFF;
-  display:block;
-  padding:10px 10px;
-  height:35px;
-  min-height:35px;
-  border-bottom-style:solid;
-  border-bottom-width:2px;
+#userbar li {
+  display: inline;
 }
 
-#navbar{
-  display:block;
-  float:right;
-  padding:0px;
-  margin:0px;
+#logoTxt {
+  background-image: url("images/freeside_txt.png");
+  float: left;
+  width: 240px;
+  height: 35px;
 }
 
-#navbar ul{
-  margin:0px;
-  padding:0px;
-}
-
-#navbar li{
-  display:inline;
-}
-
-#logo_txt{
-  background-image:url('images/freeside_txt.png');
-  float:left;
-  width:240;
-  height;35;
-}
-
-#body{
+#body {
   margin-top: 8px;
 }
 
-#body ul{
+#body ul {
   list-style-position: inside;
 }
 
-#sidebar{
-  float:left;
+#sidebar {
+  float: left;
+  width: 200px;
 }
 
-#sidebar ul{
-  width: 100px;
+#sidebar ul {
   list-style: none;
-  display: block;
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
 }
 
-#sidebar li{
+#sidebar li {
   margin-left: 5px;
+  z-index: 2;
 }
 
-#sidebar a.selected{
-  border: 1px solid;
-  border-right: 1px transparent;
-  background-color:#D0D0D0;
-  border-right: 1px transparent;
+#sidebar .selected {
+  -moz-border-radius: 0.3em 0 0 0.3em;
+  -webkit-border-radius: 0.3em 0 0 0.3em;
+  background-color: #fafafa;
+  border-color: #ccc;
+  border-style: solid;
+  border-width: 1px 0 1px 1px;
+  font-weight: bold;
 }
 
-#sidebar a{
+#sidebar a {
   border: 1px transparent;
   padding: .5em;
   display: block;
+}
+
+#member-content {
+  -moz-border-radius: 0.3em;
+  -webkit-border-radius: 0.3em;
+  background-color: #fafafa;
+  border: 1px solid #ccc;
+  margin-left: 199px;
+  min-height: 400px;
+  padding: 1em;
+  z-index: 4;
+}
+
+#member-content h1,
+#member-content h2 {
+  color: #870000;
+}
+
+.election {
+  border: 2px solid #aaa;
+  float: left;
+  margin: 0.5em;
   text-align: center;
 }
 
-#content {
-  border: 1px solid;
-  background-color:#D0D0D0;
-  min-height: 400px;
-  padding: 8px;
-  margin-left: 99px;
-  margin-right: 8px;
-}
-
-#election{
+.election-body {
+  clear: left;
   float: left;
-  border: 2px solid;
-  margin: 5px;
-  text-align:center;
+  padding: 0.5em 0;
 }
 
-#election ul{
-  list-style: none;
+.election-header {
+  background-color: #dfdfdf;
+  border-bottom: 1px solid #aaa;
+  clear: left;
+  float: left;
+  padding: 0.5em;
 }
 
-#election #title{
-  background-color: #E8E8E8;
-  display: block;
-  border-bottom: 1px solid;
-  padding: 5px;
+.election-header h2 {
+  margin: 0;
 }
 
-#member-list{
-  display: block;
-  margin-top: 15px;
-}
-
-#member-list table{
-  width: 100%;
+/** TODO(dknowles): Make this default for all tables? */
+#member-list-table {
   border-collapse: collapse;
+  margin-bottom: 1em;
+  width: 100%;
 }
 
-#member-list table tbody tr{
-  border-bottom: 1px solid;
-  border-top: 1px solid;
+#member-list-table tbody {
+  border-bottom: 2px solid #aaa;
 }
 
-#member-list table tbody td{
+#member-list-table tbody tr {
+  border-bottom: 1px solid #ccc;
+}
+
+#member-list-table tbody td {
   height: 30px;
 }
 
-#member-list td.username{
-  padding-left: 15px;
+#member-list-table td {
+  padding: 0.25em 0.5em;
 }
+
+#member-list-table thead {
+  background-color: #dfdfdf;
+  border-top: 2px solid #aaa;
+  border-bottom: 1px solid #aaa;
+  font-weight: bold;
+}
+
+
 
 #profile-details {
   margin-top: 15px;
 }
 
-#profile-details .profile-item{
-  display: block;
+#profile-details .profile-item {
   padding-top: 4px;
   padding-bottom: 4px;
 }
@@ -149,7 +196,8 @@ body{
   display: inline;
 }
 
-#profile-details .profile-input,.profile-data{
+#profile-details .profile-input,
+#profile-details .profile-data {
   padding-left: 10px;
   display: inline;
 }

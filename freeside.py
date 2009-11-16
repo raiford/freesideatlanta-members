@@ -1,35 +1,80 @@
-import os
-import hashlib
+#!/usr/bin/env python
+
+"""Main web handlers."""
+
 import datetime
+import logging
 import operator
+import os
+import random
 import sys
 import urllib
-from random import shuffle
 
 from google.appengine.ext import webapp
 from google.appengine.ext import db
-from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
+from google.appengine.ext.webapp import util
 
 from appengine_utilities.sessions import Session
 
 import freesidemodels
+import member_util
 import timezones
 
 
 class Error(Exception):
-  """Basic Error."""
+  """Base error class for this module."""
 
-def d():
-  # a hack to make pdb work with app engine SDK
+
+def set_trace():
+  """Hack to make pdb work with AppEngine SDK."""
   for attr in ('stdin', 'stdout', 'stderr'):
      setattr(sys, attr, getattr(sys, '__%s__' % attr))
   import pdb
   pdb.set_trace()
 
 
+def RedirectIfUnauthorized(fn):
+  """Decorator to redirect back to /login if user is not logged in.
+
+  Args:
+    fn: callable, function to decorate
+  Returns:
+    decorated function
+  """
+  def MaybeRedirect(self, *args, **kwargs):
+    if not self.CheckAuth():
+      self.redirect('/login')
+    else:
+      return fn(self, *args, **kwargs)
+
+  MaybeRedirect.__name__ = fn.__name__
+  MaybeRedirect.__doc__ = fn.__doc__
+  return MaybeRedirect
+
+
+def RedirectIfNotAdmin(fn):
+  """Decorator to redirect back to /home if user is not an administrator.
+
+  Args:
+    fn: callable, function to decorate
+  Returns:
+    decorated function
+  """
+  def MaybeRedirect(self, *args, **kwargs):
+    if not self.CheckAdmin():
+      self.redirect('/home')
+    else:
+      return fn(self, *args, **kwargs)
+
+  MaybeRedirect.__name__ = fn.__name__
+  MaybeRedirect.__doc__ = fn.__doc__
+  return MaybeRedirect
+
+
 class FreesideHandler(webapp.RequestHandler):
   """Request Handler with some common functions."""
+
   def __init__(self):
     super(FreesideHandler, self).__init__()
     self.session = Session()
@@ -41,80 +86,65 @@ class FreesideHandler(webapp.RequestHandler):
         {'name': 'Members', 'path': '/members'},
         {'name': 'Elections', 'path': '/elections'},
     ]
-    if self.session['user'].admin:
+    if self.CheckAdmin():
       sidebar.append({'name': 'Admin', 'path': '/admin'})
 
     for page in sidebar:
-      if self.request.path == page['path']:
-        page.update({'selected': True})
+      page['selected'] = page['path'] in self.request.path
 
     return sidebar
 
   def RenderTemplate(self, template_name, template_values):
-    path = os.path.join('templates', template_name)
-    if 'user' in self.session:
-      if 'sidebar' not in template_values:
-        template_values.update({'sidebar': self.GetSideBar()})
-      if 'user' not in template_values:
-        template_values.update({'user': self.session['user']})
-    self.response.out.write(template.render(path, template_values))
-
-  def CheckAuth(self):
-    return ('user' in self.session)
-
-  def CheckAdmin(self):
-    return self.session['user'].admin
-
-  def GetActiveMembers(self):
-    """Return a query object with all active members."""
-    q = db.GqlQuery("SELECT * FROM Member " +
-                    "WHERE active = TRUE")
-    return q
-
-  def GetMemberByUsername(self, username):
-    """Return the member based on the username."""
-    q = db.GqlQuery("SELECT * FROM Member " +
-                    "WHERE username = '%s' LIMIT 1" % username)
-    return q.get()
-
-  def _ModifyMember(self, member, modify):
-    """Transaction method for modifying a member.
+    """Helper function to render a template.
 
     Args:
-      member = The Member object to modify
-      modiry =  a dict() of keys and values to modify
-
-    Raises:
-      db.RollBack
+      template_name: str, name of the template to render
+      template_values: dict, values to pass to the template
     """
-    for key,value in modify.items():
-      if hasattr(member, key):
-        setattr(member, key, value)
-      else:
-        raise AttributeError('Member %s does not have attr %s' % (member.username, key))
+    if self.CheckAuth():
+      if 'sidebar' not in template_values:
+        template_values['sidebar'] = self.GetSideBar()
+      if 'user' not in template_values:
+        template_values['user'] = self.session['user']
+      template_values['admin'] = self.CheckAdmin()
+    template_path = os.path.join('templates', template_name)
+    self.response.out.write(template.render(template_path, template_values))
 
-    member.put()
+  def CheckAuth(self):
+    """Determines if the current user has logged in.
+
+    Returns:
+      bool
+    """
+    return 'user' in self.session
+
+  def CheckAdmin(self):
+    """Determines if the current user is a site admin.
+
+    Returns:
+      bool
+    """
+    return self.session['user'].admin
 
 
 class LoginPage(FreesideHandler):
   """The login page request handler."""
+
   def get(self):
-    template_values = {}
-    self.response.out.write(template.render('templates/login.html', template_values))
+    self.RenderTemplate('login.html', {})
 
   def post(self):
     username = self.request.get('username')
-    password = self.request.get('password')
-    hashedpass = hashlib.sha256(password).digest()
-    usernameq = db.GqlQuery("SELECT * FROM Member WHERE username = :1 AND active = True", username)
-    user = usernameq.get()
-    # Try looking up by email if username was not found
+    user = member_util.GetMemberByUsername(username)
     if not user:
-      emailq = db.GqlQuery("SELECT * FROM Member WHERE email = :1 AND active = True", username)
-      user = emailq.get()
+      # Try finding user by email.
+      user = member_util.GetMemberByEmail(self.request.get(username))
+
+    hashedpass = freesidemodels.Person.EncryptPassword(
+      self.request.get('password'))
     if user and hashedpass == user.password:
-        self.session['user'] = user
-        self.redirect('/home')
+      self.session['user'] = user
+      self.redirect('/home')
     else:
       # TODO invalid username/password message
       self.redirect('/login')
@@ -122,238 +152,163 @@ class LoginPage(FreesideHandler):
 
 class AdminPage(FreesideHandler):
   """The admin page request hanndler."""
+
   admintasks = {
-      'addmember': 'Add Member',
-      'addelection': 'Add Election',
+    'AddMember': 'Add Member',
+    'AddElection': 'Add Election',
   }
-  electiontypes = ['BoardElection', 'OfficerElection']
+  electiontypes = freesidemodels.GetAllElectionTypes()
   positions = ['President', 'Treasurer', 'Secretary', 'Board Member']
 
   def AddMember(self):
     """Add a new member to the database."""
-    username = self.request.get('username')
-    firstname = self.request.get('firstname')
-    lastname = self.request.get('lastname')
-    email = self.request.get('email')
-    password = self.request.get('password')
-
-    hashedpass = hashlib.sha256(password).digest()
-    newmember = freesidemodels.Member(username=username,
-                                      firstname=firstname,
-                                      lastname=lastname,
-                                      email=email,
-                                      password=hashedpass,
-    )
-
-    if self.request.get('starving') == 'True':
-      newmember.starving = True
-    newmember.put()
+    #member_dict = dict(
+    #  (p, self.request.get(p)) for p, cls in freesidemodels.Member._properties)
+    member = member_util.SaveMember(
+      member_util.MakeMember(
+        username=self.request.get('username'),
+        firstname=self.request.get('firstname'),
+        lastname=self.request.get('lastname'),
+        email=self.request.get('email'),
+        password=self.request.get('password'),
+        starving=self.request.get('starving') == 'True'))
     self.redirect('/admin')
 
-  def AddElection(self):
-    """Create an election."""
-    election_type = self.request.get('election_type')
-    position = self.request.get('position')
-    nominate_start = self.request.get('nomination_start')
-    nominate_end = self.request.get('nomination_end')
-    vote_start = self.request.get('vote_start')
-    vote_end = self.request.get('vote_end')
-    description = self.request.get('description')
+  def _ParseDate(self, date_str, tzinfo=timezones.Eastern()):
+    """Parses a date string in format "MM/DD/YYYY".
 
-    nominate_start = nominate_start.split('/')
-    nominate_start = map(int, nominate_start)
-    nominate_start = datetime.datetime(year=nominate_start[2],
-                                       month=nominate_start[0],
-                                       day=nominate_start[1],
-                                       tzinfo=timezones.Eastern())
-    nominate_end = nominate_end.split('/')
-    nominate_end = map(int, nominate_end)
-    nominate_end = datetime.datetime(year=nominate_end[2],
-                                     month=nominate_end[0],
-                                     day=nominate_end[1],
-                                     tzinfo=timezones.Eastern())
-    vote_start = vote_start.split('/')
-    vote_start = map(int, vote_start)
-    vote_start = datetime.datetime(year=vote_start[2],
-                                   month=vote_start[0],
-                                   day=vote_start[1],
-                                   tzinfo=timezones.Eastern())
-    vote_end = vote_end.split('/')
-    vote_end = map(int, vote_end)
-    vote_end = datetime.datetime(year=vote_end[2],
-                                 month=vote_end[0],
-                                 day=vote_end[1],
-                                 tzinfo=timezones.Eastern())
+    Args:
+      date_str: date string in format "MM/DD/YYYY"
+      tzinfo: datetime.tzinfo, timezone for the date
+    Returns:
+      datetime.datetime
+    """
+    month, day, year = map(int, date_str.split('/'))
+    return datetime.datetime(
+      year=year, month=month, day=day, hour=0, minute=0, second=0)
+
+  def AddElection(self):
+    """Creates a new election."""
+    # TODO(dknowles): Move this to election_util
+    nominate_start = self._ParseDate(self.request.get('nomination_start'))
+    nominate_end = self._ParseDate(self.request.get('nomination_end'))
+    vote_start = self._ParseDate(self.request.get('vote_start'))
+    vote_end = self._ParseDate(self.request.get('vote_end'))
 
     if not nominate_start < nominate_end <= vote_start < vote_end:
       raise Error('Dates are not in order.')
 
+    election_type = self.request.get('election_type')
+    if election_type not in self.electiontypes:
+      raise Error('Invalid election type.')
 
-    if election_type == 'OfficerElection':
-      new_election = freesidemodels.OfficerElection(position=position,
-                                                    nominate_start=nominate_start,
-                                                    nominate_end=nominate_end,
-                                                    vote_start=vote_start,
-                                                    vote_end=vote_end,
-                                                    description=description)
-    elif election_type == 'BoardElection':
-      new_election = freesidemodels.BoardElection(position=position,
-                                                  nominate_start=nominate_start,
-                                                  nominate_end=nominate_end,
-                                                  vote_start=vote_start,
-                                                  vote_end=vote_end,
-                                                  description=description)
-    else:
-      raise Error('Unknown Election Type')
-
+    new_election = getattr(freesidemodels, election_type)(
+      position=self.request.get('position'),
+      nominate_start=nominate_start,
+      nominate_end=nominate_end,
+      vote_start=vote_start,
+      vote_end=vote_end,
+      description=self.request.get('description'))
     new_election.put()
     self.redirect('/admin')
 
-
+  @RedirectIfUnauthorized
+  @RedirectIfNotAdmin
   def get(self):
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
-    if not self.CheckAdmin():
-      self.redirect('/home')
-      return
-    template_values = {'admintasks': self.admintasks}
-    task =  self.request.get('task')
-    template_values.update({'admintask': task})
-    template_values.update({'electiontypes': self.electiontypes})
-    template_values.update({'positions': self.positions})
+    template_values = {
+      'admintasks': self.admintasks.items(),
+      'admintask': self.request.get('task'),
+      'electiontypes': self.electiontypes,
+      'positions': self.positions,
+      }
     self.RenderTemplate('admin.html', template_values)
 
+  @RedirectIfUnauthorized
+  @RedirectIfNotAdmin
   def post(self):
-    self.CheckAdmin()
-    admin_methods = {'addmember': self.AddMember,
-                     'addelection': self.AddElection,
-    }
     task = self.request.get('task')
-    admin_methods[task]()
+    if task not in self.admintasks:
+      self.redirect('./')
+    else:
+      getattr(self, task)()
 
 
 class HomePage(FreesideHandler):
   """The default landing page."""
+
+  @RedirectIfUnauthorized
   def get(self):
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
-    template_values = {}
-    self.RenderTemplate('base.html', template_values)
+    self.RenderTemplate('home.html', {})
 
 
 class MembersList(FreesideHandler):
   """The Members List."""
-  def get(self):
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
 
-    q = db.GqlQuery("SELECT * FROM Member " +
-                    "WHERE active = True")
-    template_values = {'members': q}
-    self.RenderTemplate('members.html', template_values)
+  @RedirectIfUnauthorized
+  def get(self):
+    self.RenderTemplate(
+      'members.html', {'members': member_util.GetActiveMembers()})
 
 
 class Profile(FreesideHandler):
   """Display the details about a member."""
+
+  @RedirectIfUnauthorized
   def get(self, username):
-    username = urllib.unquote(username)
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
-    member = self.GetMemberByUsername(username)
+    """Shows details about a member."""
+    member = member_util.GetMemberByUsername(urllib.unquote(username))
     if not member:
       self.redirect('/members')
       return
-    canedit = ((self.session['user'].key() == member.key()) or 
-        self.session['user'].admin)
-    if canedit and self.request.get('mode') == 'edit':
-      edit = True
-    else:
-      edit = False
 
-    template_values = {'member': member,
-                       'canedit': canedit,
-                       'edit': edit}
-    self.RenderTemplate('profile.html', template_values)
+    user = self.session['user']
+    edit = self.request.get('mode') == 'edit'
+    canedit = user.key() == member.key() or user.admin
 
+    self.RenderTemplate(
+      'profile.html',
+      {'member': member, 'canedit': canedit, 'edit': edit})
+
+  @RedirectIfUnauthorized
   def post(self, username):
-    """Modify a User."""
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
-    member = self.GetMemberByUsername(username)
-    newusername = self.request.get('username')
-    firstname = self.request.get('firstname')
-    lastname = self.request.get('lastname')
-    email = self.request.get('email')
+    """Modifies a Member."""
+    member = member_util.GetMemberByUsername(username)
     currentpass = self.request.get('currentpass')
     newpass = self.request.get('newpass')
-    modify = {}
-
     if currentpass and newpass:
-      if hashlib.sha256(currentpass).digest() != member.password:
+      if freesidemodels.Person.EncryptPassword(currentpass) != member.password:
         template_values = {'errortxt': 'Incorrect Password. Please try again.'}
         self.RenderTemplate('error.html', template_values)
         return
       else:
-        modify['password'] = hashlib.sha256(newpass).digest()
+        member.password = freesidemodels.Person.EncryptPassword(newpass)
 
+    member.firstname = self.request.get('firstname')
+    member.lastname = self.request.get('lastname')
+    member.email = self.request.get('email')
+
+    newusername = self.request.get('username')
     if newusername != member.username:
-      if self.GetMemberByUsername(newusername) == None:
-        modify['username'] = newusername
+      if self.GetMemberByUsername(newusername) is None:
+        member.username = newusername
       else:
         template_values = {'errortxt': 'Requested username is already in use.'}
         self.RenderTemplate('error.html', template_values)
         return
-      
-    if firstname != member.firstname:
-      modify['firstname'] = firstname
-    if lastname != member.lastname:
-      modify['lastname'] = lastname
-    if email != str(member.email):
-      modify['email'] = email
 
-    try:
-      db.run_in_transaction(self._ModifyMember, member, modify)
-    except AttributeError:
-      self.error(500)
-      return
-
+    member_util.SaveIfChanged(member)
     self.redirect('/members/%s' % member.username)
 
 
 class Elections(FreesideHandler):
   """Serve the voting page."""
-  def GetOfficerElections(self):
-    """Return a list of current officer elections."""
-    #now = datetime.datetime.now(timezones.UTC())
-    #q = db.GqlQuery("SELECT * FROM OfficerElection " +
-    #                "WHERE vote_end >= DATETIME(:1) " +
-    #                "ORDER BY vote_end",
-    #                str(now).split('.')[0])
-    q = freesidemodels.OfficerElection.all()
-    officer_elections = []
-    for election in q:
-      officer_elections.append(election)
 
-    return officer_elections
+  def _GetActiveElections(self, election_type):
+    if election_type not in freesidemodels.GetAllElectionTypes():
+      raise Error('Invalid election type')
 
-  def GetBoardElections(self):
-    """Return a list of current board elections."""
-    #now = datetime.datetime.now(timezones.UTC())
-    #q = db.GqlQuery("SELECT * FROM BoardElection " +
-    #                "WHERE vote_end >= DATETIME(:1) " +
-    #                "ORDER BY vote_end",
-    #                str(now).split('.')[0])
-    q = freesidemodels.BoardElection.all()
-    board_elections = []
-    for election in q:
-      board_elections.append(election)
-
-    return board_elections
+    return getattr(freesidemodels, election_type).all().filter(
+      'vote_end >=', datetime.datetime.now(timezones.UTC())).fetch(1000)
 
   def _NominateTransaction(self, election_key, nominee_key):
     """Class to wrap the actual nomination in a transaction."""
@@ -367,7 +322,7 @@ class Elections(FreesideHandler):
     if userkey not in election.nominators:
       election.nominators.append(userkey)
       # shuffle the nominators so they are anonymous
-      shuffle(election.nominators)
+      random.shuffle(election.nominators)
     else:
       raise db.Rollback('You have already nominated someone')
 
@@ -383,23 +338,23 @@ class Elections(FreesideHandler):
 
     # You can't nominate yourself
     if nominee_key == self.session['user'].key():
-      raise Error('You cant nominate yourself')
+      raise Error('You can\'t nominate yourself.')
 
     # you can only nominate once
     if self.session['user'].key() in election.nominators:
-      raise Error('You can only nominate once')
+      raise Error('You can only nominate once.')
 
     # Verify that the election is accepting nominations
     if not election.nominate_start < now < election.nominate_end:
-      #TODO Error page
-      raise Error('Election is not accepting nominations')
+      # TODO Error page
+      raise Error('Election is not accepting nominations.')
 
     # Verify the nominee is valid for the election type.
     if electiontype == 'OfficerElection' and nomineetype != 'Member':
-      #TODO Replace with an error page.
+      # TODO Replace with an error page.
       raise Error('Nominee is not a member')
     elif electiontype == 'BoardElection' and nomineetype not in ['Member', 'Person']:
-      #TODO Replace with an error page.
+      # TODO Replace with an error page.
       raise Error('Nominee is not a member or person')
 
     nominee_key = nominee.key()
@@ -414,7 +369,7 @@ class Elections(FreesideHandler):
       election.voters.append(userkey)
       election.votes.append(vote_key)
       # shuffle the voters so they are anonymous
-      shuffle(election.voters)
+      random.shuffle(election.voters)
     else:
       raise db.Rollback('You have already voted someone')
 
@@ -440,14 +395,14 @@ class Elections(FreesideHandler):
 
     db.run_in_transaction(self._VoteTransaction, election_key, vote_key)
 
+  @RedirectIfUnauthorized
   def get(self):
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
     now = datetime.datetime.now(timezones.UTC())
-    current_elections = []
-    current_elections.extend(self.GetOfficerElections())
-    current_elections.extend(self.GetBoardElections())
+    current_elections = map(
+      self._GetActiveElections, freesidemodels.GetAllElectionTypes())
+    # Flatten the current_elections list
+    current_elections = [
+      election for elections in current_elections for election in elections]
 
     voting = []
     nominating = []
@@ -463,7 +418,7 @@ class Elections(FreesideHandler):
         eligible = []
         nominees = []
         has_nominated = user.key() in election.nominators
-        for member in self.GetActiveMembers():
+        for member in member_util.GetActiveMembers():
           if member.key() not in election.nominees and member.key() != user.key():
             eligible.append(member)
         for nomineekey in election.nominees:
@@ -502,10 +457,8 @@ class Elections(FreesideHandler):
                        'ended': ended}
     self.RenderTemplate('vote.html', template_values)
 
+  @RedirectIfUnauthorized
   def post(self):
-    if not self.CheckAuth():
-      self.redirect('/login')
-      return
     arguments = self.request.arguments()
     vote = self.request.get('vote')
     nomination = self.request.get('nomination')
@@ -528,18 +481,19 @@ class Logout(FreesideHandler):
     self.session.delete()
     self.redirect('/login')
 
-application = webapp.WSGIApplication([('/', HomePage),
-                                      ('/login', LoginPage),
-                                      (r'/home/?', HomePage),
-                                      (r'/admin/?', AdminPage),
-                                      (r'/members/?', MembersList),
-                                      (r'/members/(.*)', Profile),
-                                      ('/logout', Logout),
-                                      (r'/elections/?', Elections),],
-                                     debug=True)
 
 def main():
-  run_wsgi_app(application)
+  url_map = {
+    r'/': HomePage,
+    r'/login': LoginPage,
+    r'/home/?': HomePage,
+    r'/admin/?': AdminPage,
+    r'/members/?': MembersList,
+    r'/members/(.*)': Profile,
+    r'/logout': Logout,
+    r'/elections/?': Elections}
+  util.run_wsgi_app(webapp.WSGIApplication(url_map.items(), debug=True))
+
 
 if __name__ == '__main__':
   main()

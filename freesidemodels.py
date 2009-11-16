@@ -1,10 +1,15 @@
-from datetime import datetime
+#!/usr/bin/env python
+
+"""Datastore models for Freeside Atlanta's Member Portal."""
+
+import hashlib
 
 from google.appengine.ext import db
 
 
 class Person(db.Model):
   """Base person class.  Necessary in the case of non-member board nominees."""
+
   firstname = db.StringProperty()
   lastname = db.StringProperty()
   username = db.StringProperty(required=True)
@@ -20,9 +25,21 @@ class Person(db.Model):
   joined = db.DateProperty()
   left = db.DateProperty()
 
+  @staticmethod
+  def EncryptPassword(password):
+    """Encrypts a password using SHA-256 encoding.
+
+    Args:
+      password: str, password to encrypt.
+    Returns:
+      str, encrypted password.
+    """
+    return hashlib.sha256(password).digest()
+
 
 class Member(Person):
   """Your basic freeside member."""
+
   starving = db.BooleanProperty(default=False)
   rfid = db.IntegerProperty()
   doormusic = db.BlobProperty()
@@ -34,6 +51,7 @@ class Member(Person):
 
 class Election(db.Model):
   """Election Base Class."""
+
   position = db.StringProperty(required=True)
   description = db.TextProperty()
   nominate_start = db.DateTimeProperty(required=True)
@@ -47,6 +65,11 @@ class Election(db.Model):
   # Unique list of member keys to prevent double voting.
   nominators = db.ListProperty(item_type=db.Key)
   voters = db.ListProperty(item_type=db.Key)
+
+
+def GetAllElectionTypes():
+  """Gets all valid election types."""
+  return [s.__name__ for s in Election.__subclasses__()]
 
 
 class OfficerElection(Election):

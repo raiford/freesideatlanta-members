@@ -1,35 +1,32 @@
 /*
-Some Basic javascript for the freeside member portal.
-*/
+ * Some Basic javascript for the freeside member portal.
+ */
 
-function validate_email(field,alerttxt)
-{
-with (field)
-  {
-  apos=value.indexOf("@");
-  dotpos=value.lastIndexOf(".");
-  if (apos<1||dotpos-apos<2)
-    {alert(alerttxt);return false;}
-  else {return true;}
+function validateEmail(field, alertText) {
+  var atPos = field.value.indexOf("@");
+  var dotPos = field.value.lastIndexOf(".");
+  if (atPos < 1 || dotPos - atPos < 2) {
+    window.alert(alertText);
+    return false;
+  } else {
+    return true;
   }
 }
 
-function checkProfileForm(formdata)
-{
-with (formdata)
-  {
-  if (newpass.value!=newpassrepeat.value)
-    {
-    alert("New passwords don't match");
-    newpass.value="";
-    newpassrepeat.value="";
-    newpass.focus();
-    return false;
+function checkProfileForm(formData) {
+  with (formData) {
+    window.console.log(formData);
+    if (newpass.value != newpassrepeat.value) {
+      window.alert("New passwords don't match");
+      newpass.value = "";
+      newpassrepeat.value = "";
+      newpass.focus();
+      return false;
     }
-  if(validate_email(email,"Not a valid email address.")==false)
-    {
-    email.focus();
-    return false;
+
+    if (validateEmail(email, "Not a valid email address.") == false) {
+      email.focus();
+      return false;
     }
   }
 }

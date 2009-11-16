@@ -1,41 +1,25 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
-  <head>
-  <style type="text/css">
-    div.container
-    {
-    position:relative;
-    display:inline;
-    }
-    div.center
-    {
-    text-align:center;
-    }
-    div.text
-    {
-    position:absolute;
-    right:185px;
-    }
-  </style>
-  </head>
-  <body>
-    <div class="center">
-    <img src="images/freeside_login.png"><br>
-    <form action="/login" method="post"/></div>
-    <div class="center">
+{% extends "base.html" %}
+
+{% block container %}
+  <div id="login">
+    <form action="/login" method="post"/>
       <div class="container">
-        <div class="text">Login:</div>
-        <input type="text" name="username"/>
+        <img alt="Freeside Atlanta" src="images/freeside_login.png">
+        <table id="login-form">
+          <tr>
+            <td class="label"><label for="username">Login:</label></td>
+            <td><input type="text" id="username" name="username"/></td>
+          </tr>
+          <tr>
+            <td class="label"><label for="password">Password:</label></td>
+            <td><input type="password" id="password" name="password"/></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><input type="submit" value="Login"/></td>
+          </tr>
+        </table>
       </div>
-    </div>
-    <div class="center">
-      <div class="container">
-        <div class="text">Password:</div>
-        <input type="password" name="password"/><br>
-      </div>
-      <input type="submit" value="Login"/>
-    </div><br/>
     </form>
-  </body>
-</html>
+  </div>
+{% endblock container %}
