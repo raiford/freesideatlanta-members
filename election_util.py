@@ -53,7 +53,6 @@ def _IsBoardElection(election):
     return isinstance(election, freesidemodels.BoardElection)
 
 
-
 def Nominate(election, nominee, current_user):
     """Nominate a Person for an election.
 
