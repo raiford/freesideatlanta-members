@@ -293,7 +293,7 @@ class Profile(FreesideHandler):
   @RedirectIfUnauthorized
   def post(self, username):
     """Modifies a Member."""
-    member = member_util.GetMemberByUsername(username)
+    member = member_util.GetMemberByUsername(urllib.unquote(username))
     if member is None:
       self.RenderTemplate(
           'error.html',
