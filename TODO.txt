@@ -1,0 +1,4 @@
+RESTful API for members/elections
+OAuth support
+OpenID support
+Use session support to store errors
