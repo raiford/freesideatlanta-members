@@ -96,4 +96,13 @@
 {% endif %}
 </div>
 
+{% if user.admin %}
+  <br /><br />
+  <form action="/admin" method="post">
+    <input type="hidden" name="task" value="ResetPassword" />
+    <input type="hidden" name="resetmember" value="{{ member.key }}" />
+    <input type="submit" value="Reset password" />
+  </form>
+{% endif %}
+
 {% endblock %}

@@ -259,7 +259,7 @@ class HomePage(FreesideHandler):
 
   @RedirectIfUnauthorized
   def get(self):
-    self.RenderTemplate('home.html', {'member': self.session['user']})
+    self.RenderTemplate('home.html', {})
 
 
 class MembersList(FreesideHandler):
