@@ -46,6 +46,15 @@ def Password():
     return hashlib.sha256(password).digest()
 
 
+def UnencryptedPassword():
+  """Generate a random unencrypted password.
+
+  Returns:
+    str, a random 10 letter password.
+  """
+  return ''.join(random.sample(string.lowercase + string.digits, 10))
+
+
 def PersonDict(active=True, admin=False):
     """Creates a dict containing key/value pairs for a freesidemodels.Person.
 

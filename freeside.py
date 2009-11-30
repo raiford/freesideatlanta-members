@@ -10,6 +10,7 @@ import random
 import sys
 import urllib
 
+from google.appengine.api import mail
 from google.appengine.ext import webapp
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
@@ -156,9 +157,27 @@ class AdminPage(FreesideHandler):
   admintasks = {
     'AddMember': 'Add Member',
     'AddElection': 'Add Election',
+    'ResetPassword': 'Reset Password',
   }
   electiontypes = freesidemodels.GetAllElectionTypes()
   positions = ['President', 'Treasurer', 'Secretary', 'Board Member']
+
+  def ResetPassword(self):
+    """Scramble a members password and email it to them."""
+    memberkey = self.request.get('resetmember')
+    member = db.get(memberkey)
+    # check that the member is active
+    if not member_util.IsActiveMember(member):
+      template_values = {'errortxt': 'Member is not active'}
+      self.RenderTemplate('error.html', template_values)
+      return
+    # check that the members email address is valid
+    if not mail.is_email_valid(member.email):
+      template_values = {'errortxt': 'Members email is not valid'}
+      self.RenderTemplate('error.html', template_values)
+      return
+    member_util.ResetAndEmailPassword(member)
+    self.redirect('/admin?&task=ResetPassword')
 
   def AddMember(self):
     """Add a new member to the database."""
@@ -221,6 +240,8 @@ class AdminPage(FreesideHandler):
       'electiontypes': self.electiontypes,
       'positions': self.positions,
       }
+    if template_values['admintask'] == 'ResetPassword':
+      template_values['members'] = member_util.GetActiveMembers()
     self.RenderTemplate('admin.html', template_values)
 
   @RedirectIfUnauthorized

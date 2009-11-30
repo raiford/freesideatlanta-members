@@ -3,8 +3,10 @@
 """Utility functions for dealing with members."""
 
 from google.appengine.ext import db
+from google.appengine.api import mail
 
 import freesidemodels
+import random_util
 
 
 def MakeMember(*args, **kwargs):
@@ -110,3 +112,30 @@ def IsActiveMember(person):
       bool, whether the person is an active Freeside member.
     """
     return isinstance(person, freesidemodels.Member) and person.active
+
+
+def ResetAndEmailPassword(member):
+  """Scramble a members password and email it to them.
+
+  Args:
+    member: freesidemodels.Member
+  """
+  # Change the members password and write it to the datastore
+  temp_password = random_util.UnencryptedPassword()
+  member.password = freesidemodels.Person.EncryptPassword(temp_password)
+  SaveMember(member)
+
+  # Email the new password to the member
+  member_address = member.email
+  sender_address = 'freesideatlanta@gmail.com'
+  subject = 'Your Freeside member password has been reset'
+  body = """
+  This email is to inform you that your password for the freeside-members portal
+  has been reset.  Your temp password is listed below.  Please login to the URL
+  below and change your password.
+
+  Member portal URL: http://freeside-members.appspot.com
+  Your username: %s
+  Temp password: %s
+  """ % (member.username, temp_password)
+  mail.send_mail(sender_address, member_address, subject, body)

@@ -11,35 +11,35 @@
     </ul>
   {% endif %}
 
-  {# Add member form #}
-  {% ifequal admintask "AddMember" %}
-
-{% comment %}
-  {% ifequal admintask "AddMember" %}
-    <h1>Add new member</h1>
+  {# Reset a members password #}
+  {% ifequal admintask "ResetPassword" %}
+    <h1>Reset a members password</h1>
     <form action="/admin" method="post">
-      <input type="hidden" name="task" value="AddMember"/>
+      <input type="hidden" name="task" value="ResetPassword"/>
       <table>
         <tbody>
-          {% for field in fields %}
-            <tr>
-              <td class="field-name">
-                <label for="{{ field.name }}">{{ field.verbose_name }}:</label>
-              </td>
-              <td>
-                <input type="{{ field.input_type }}"
-                       name="{{ field.name }}"
-                       id="{{ field.name }}" />
-              </td>
-            </tr>
-          {% endfor %}
+          <tr>
+            <td class="field-name">
+              <label for="resetmember">Member:</label>
+            </td>
+            <td>
+              <select name="resetmember">
+                {% for member in members %}
+                <option value="{{ member.key }}">{{ member.username }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <input type="submit" value="Reset Password"/>
+            </td>
+          </tr>
         </tbody>
       </table>
-      <input type="submit" value="Submit"/>
     </form>
   {% endifequal %}
-{% endcomment %}
 
+  {# Add member form #}
+  {% ifequal admintask "AddMember" %}
     <h1>Add new member</h1>
     <form action="/admin" method="post">
       <input type="hidden" name="task" value="AddMember"/>
