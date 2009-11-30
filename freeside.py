@@ -267,8 +267,8 @@ class MembersList(FreesideHandler):
 
   @RedirectIfUnauthorized
   def get(self):
-    self.RenderTemplate(
-      'members.html', {'members': member_util.GetActiveMembers()})
+    members = sorted(member_util.GetActiveMembers(), key=lambda m: m.username)
+    self.RenderTemplate('members.html', {'members': members})
 
 
 class Profile(FreesideHandler):
