@@ -60,7 +60,7 @@
 }
 
 #logoTxt {
-  background-image: url("images/freeside_txt.png");
+  background-image: url("/images/freeside_txt.png");
   float: left;
   width: 240px;
   height: 35px;
