@@ -33,6 +33,13 @@
           </ul>
         </div>
         <div id="member-content">
+          {% if user.password_expired %}
+            <div class="error">
+              Your password has expired.
+              <a href="/members/{{ user.username }}?mode=edit">Change now &raquo;</a>
+            </div>
+          {% endif %}
+
           {% block content %}{% endblock %}
         </div>
       </div>
