@@ -123,6 +123,7 @@ def ResetAndEmailPassword(member):
   # Change the members password and write it to the datastore
   temp_password = random_util.UnencryptedPassword()
   member.password = freesidemodels.Person.EncryptPassword(temp_password)
+  member.password_expired = True
   SaveMember(member)
 
   # Email the new password to the member
