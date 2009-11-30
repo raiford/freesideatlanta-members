@@ -293,7 +293,7 @@ class Profile(FreesideHandler):
   @RedirectIfUnauthorized
   def post(self, username):
     """Modifies a Member."""
-    member = member_util.GetMemberByUsername(username)
+    member = member_util.GetMemberByUsername(urllib.unquote(username))
     currentpass = self.request.get('currentpass')
     newpass = self.request.get('newpass')
     if currentpass and newpass:
@@ -310,7 +310,7 @@ class Profile(FreesideHandler):
 
     newusername = self.request.get('username')
     if newusername != member.username:
-      if self.GetMemberByUsername(newusername) is None:
+      if member_util.GetMemberByUsername(newusername) is None:
         member.username = newusername
       else:
         template_values = {'errortxt': 'Requested username is already in use.'}
