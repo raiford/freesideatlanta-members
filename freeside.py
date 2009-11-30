@@ -18,6 +18,7 @@ from google.appengine.ext.webapp import util
 
 from appengine_utilities.sessions import Session
 
+import election_util
 import freesidemodels
 import member_util
 import timezones
@@ -339,96 +340,12 @@ class Elections(FreesideHandler):
     return getattr(freesidemodels, election_type).all().filter(
       'vote_end >=', datetime.datetime.now(timezones.UTC())).fetch(1000)
 
-  def _NominateTransaction(self, election_key, nominee_key):
-    """Class to wrap the actual nomination in a transaction."""
-    election = db.get(election_key)
-    userkey = self.session['user'].key()
-    if nominee_key not in election.nominees:
-      election.nominees.append(nominee_key)
-    else:
-      raise db.Rollback('Person already nominated')
-
-    if userkey not in election.nominators:
-      election.nominators.append(userkey)
-      # shuffle the nominators so they are anonymous
-      random.shuffle(election.nominators)
-    else:
-      raise db.Rollback('You have already nominated someone')
-
-    election.put()
-
-  def Nominate(self, election_key, nominee_key):
-    """Nominate a member for an election."""
-    election = db.get(election_key)
-    nominee = db.get(nominee_key)
-    electiontype = election.kind()
-    nomineetype = nominee.kind()
-    now = datetime.datetime.now()
-
-    # You can't nominate yourself
-    if nominee_key == self.session['user'].key():
-      raise Error('You can\'t nominate yourself.')
-
-    # you can only nominate once
-    if self.session['user'].key() in election.nominators:
-      raise Error('You can only nominate once.')
-
-    # Verify that the election is accepting nominations
-    if not election.nominate_start < now < election.nominate_end:
-      # TODO Error page
-      raise Error('Election is not accepting nominations.')
-
-    # Verify the nominee is valid for the election type.
-    if electiontype == 'OfficerElection' and nomineetype != 'Member':
-      # TODO Replace with an error page.
-      raise Error('Nominee is not a member')
-    elif electiontype == 'BoardElection' and nomineetype not in ['Member', 'Person']:
-      # TODO Replace with an error page.
-      raise Error('Nominee is not a member or person')
-
-    nominee_key = nominee.key()
-    election_key = election.key()
-    db.run_in_transaction(self._NominateTransaction, election_key, nominee_key)
-
-  def _VoteTransaction(self, election_key, vote_key):
-    """Transaction to handle the vote."""
-    election = db.get(election_key)
-    userkey = self.session['user'].key()
-    if userkey not in election.voters:
-      election.voters.append(userkey)
-      election.votes.append(vote_key)
-      # shuffle the voters so they are anonymous
-      random.shuffle(election.voters)
-    else:
-      raise db.Rollback('You have already voted someone')
-
-    election.put()
-
-  def Vote(self, election_key, vote_key):
-    """Cast a Vote."""
-    election = db.get(election_key)
-    vote = db.get(vote_key)
-    now = datetime.datetime.now()
-
-    # Make sure the election is accepting votes
-    if not election.vote_start < now < election.vote_end:
-      raise Error('Election is not accepting Votes')
-
-    # Make sure that the vote was nominated
-    if vote_key not in election.nominees:
-      raise Error('Your vote was not nominated')
-
-    # You can only vote once
-    if self.session['user'].key() in election.voters:
-      raise Error('You already voted')
-
-    db.run_in_transaction(self._VoteTransaction, election_key, vote_key)
-
   @RedirectIfUnauthorized
   def get(self):
     now = datetime.datetime.now(timezones.UTC())
     current_elections = map(
       self._GetActiveElections, freesidemodels.GetAllElectionTypes())
+
     # Flatten the current_elections list
     current_elections = [
       election for elections in current_elections for election in elections]
@@ -437,12 +354,14 @@ class Elections(FreesideHandler):
     nominating = []
     ended = []
     user = self.session['user']
+
     # Sort current elections by voting and nominating
     for election in current_elections:
       nominate_start = election.nominate_start.replace(tzinfo=timezones.UTC())
       nominate_end = election.nominate_end.replace(tzinfo=timezones.UTC())
       vote_start = election.vote_start.replace(tzinfo=timezones.UTC())
       vote_end = election.vote_end.replace(tzinfo=timezones.UTC())
+
       if nominate_start < now < nominate_end:
         eligible = []
         nominees = []
@@ -450,22 +369,27 @@ class Elections(FreesideHandler):
         for member in member_util.GetActiveMembers():
           if member.key() not in election.nominees and member.key() != user.key():
             eligible.append(member)
+
         for nomineekey in election.nominees:
           nominees.append(db.get(nomineekey))
-        nominating.append({'election': election,
-                           'eligible': eligible,
-                           'nominate_end': nominate_end.astimezone(timezones.Eastern()),
-                           'nominees': nominees,
-                           'has_nominated': has_nominated})
+
+        nominating.append(
+            {'election': election,
+             'eligible': eligible,
+             'nominate_end': nominate_end.astimezone(timezones.Eastern()),
+             'nominees': nominees,
+             'has_nominated': has_nominated})
       elif vote_start < now < vote_end:
         eligible = []
         has_voted = user.key() in election.voters
         for nominee in election.nominees:
             eligible.append(db.get(nominee))
-        voting.append({'election': election,
-                       'eligible': eligible,
-                       'has_voted': has_voted,
-                       'vote_end': vote_end.astimezone(timezones.Eastern())})
+
+        voting.append(
+            {'election': election,
+             'eligible': eligible,
+             'has_voted': has_voted,
+             'vote_end': vote_end.astimezone(timezones.Eastern())})
       elif vote_end < now:
         total_votes = len(election.votes)
         vote_totals = {}
@@ -475,31 +399,33 @@ class Elections(FreesideHandler):
             vote_totals[member.username] += 1
           else:
             vote_totals[member.username] = 1
-        ended.append({'election': election,
-                      'totals': sorted(vote_totals.iteritems(),
-                                       key=operator.itemgetter(1),
-                                       reverse=True),
-                      'vote_end': vote_end.astimezone(timezones.Eastern())})
 
-    template_values = {'voting': voting,
-                       'nominating': nominating,
-                       'ended': ended}
+        ended.append(
+            {'election': election,
+             'totals': sorted(vote_totals.iteritems(),
+                              key=operator.itemgetter(1),
+                              reverse=True),
+             'vote_end': vote_end.astimezone(timezones.Eastern())})
+
+    template_values = {
+        'voting': voting,
+        'nominating': nominating,
+        'ended': ended}
     self.RenderTemplate('vote.html', template_values)
 
   @RedirectIfUnauthorized
   def post(self):
-    arguments = self.request.arguments()
-    vote = self.request.get('vote')
-    nomination = self.request.get('nomination')
-    election = self.request.get('election')
-    election_key = db.Key(election)
+    election_key = self.request.get('election')
+    election = db.get(db.Key(election_key))
+    nominee_key = self.request.get('nomination')
+    vote_key = self.request.get('vote')
 
-    if nomination:
-      nominee_key = db.Key(nomination)
-      self.Nominate(election_key, nominee_key)
-    elif vote:
-      vote_key = db.Key(vote)
-      self.Vote(election_key, vote_key)
+    if nominee_key:
+      nominee = db.get(db.Key(nominee_key))
+      election_util.Nominate(election, nominee, self.session['user'])
+    elif vote_key:
+      vote = db.get(db.Key(vote_key))
+      election_util.Vote(election, vote, self.session['user'])
 
     self.redirect('/elections')
 
