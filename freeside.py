@@ -294,6 +294,12 @@ class Profile(FreesideHandler):
   def post(self, username):
     """Modifies a Member."""
     member = member_util.GetMemberByUsername(urllib.unquote(username))
+    if member is None:
+      self.RenderTemplate(
+          'error.html',
+          {'errortxt': 'Could not find member with username: %s' % username})
+      return
+
     currentpass = self.request.get('currentpass')
     newpass = self.request.get('newpass')
     if currentpass and newpass:
