@@ -259,7 +259,7 @@ class HomePage(FreesideHandler):
 
   @RedirectIfUnauthorized
   def get(self):
-    self.RenderTemplate('home.html', {})
+    self.RenderTemplate('home.html', {'member': self.session['user']})
 
 
 class MembersList(FreesideHandler):
@@ -309,6 +309,7 @@ class Profile(FreesideHandler):
         return
       else:
         member.password = freesidemodels.Person.EncryptPassword(newpass)
+        member.password_expired = False
 
     member.firstname = self.request.get('firstname')
     member.lastname = self.request.get('lastname')

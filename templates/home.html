@@ -7,4 +7,11 @@
     Welcome to the Freeside Atlanta members portal!
   </p>
 
+  {% if member.password_expired %}
+    <div class="error">
+      Your password has expired.
+      <a href="/members/{{ member.username }}?mode=edit">Change now &raquo;</a>
+    </div>
+  {% endif %}
+
 {% endblock content %}

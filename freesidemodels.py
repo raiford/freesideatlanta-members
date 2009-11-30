@@ -20,6 +20,7 @@ class Person(db.Model):
   address = db.PostalAddressProperty()
   # password is hashed with sha256
   password = db.BlobProperty(required=True)
+  password_expired = db.BooleanProperty(default=False)
   active = db.BooleanProperty(default=True)
   admin = db.BooleanProperty(default=False)
   joined = db.DateProperty()
