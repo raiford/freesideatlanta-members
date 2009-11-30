@@ -241,7 +241,8 @@ class AdminPage(FreesideHandler):
       'positions': self.positions,
       }
     if template_values['admintask'] == 'ResetPassword':
-      template_values['members'] = member_util.GetActiveMembers()
+      members = sorted(member_util.GetActiveMembers(), key=lambda m: m.username)
+      template_values['members'] = members
     self.RenderTemplate('admin.html', template_values)
 
   @RedirectIfUnauthorized
