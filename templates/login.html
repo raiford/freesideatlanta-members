@@ -5,6 +5,11 @@
     <form action="/login" method="post"/>
       <div class="container">
         <img alt="Freeside Atlanta" src="images/freeside_login.png">
+
+        {% for error in errors %}
+          <div class="error">{{ error }}</div>
+        {% endfor %}
+
         <table id="login-form">
           <tr>
             <td class="label"><label for="username">Login:</label></td>
