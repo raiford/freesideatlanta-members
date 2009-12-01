@@ -81,6 +81,16 @@ class FreesideHandler(webapp.RequestHandler):
     super(FreesideHandler, self).__init__()
     self.session = Session()
 
+  user = property(lambda self: self.session['user'])
+
+  def _GetError(self):
+    return self.session['error']
+
+  def _SetError(self, error):
+    self.session['error'] = error
+
+  error_msg = property(_GetError, _SetError)
+
   def GetSideBar(self):
     """Generate the sidebar list."""
     sidebar = [
@@ -103,12 +113,14 @@ class FreesideHandler(webapp.RequestHandler):
       template_name: str, name of the template to render
       template_values: dict, values to pass to the template
     """
+    template_values['errors'] = [self.error_msg]
+    # TODO(dknowles): Empty errors here?
+
     if self.CheckAuth():
-      if 'sidebar' not in template_values:
-        template_values['sidebar'] = self.GetSideBar()
-      if 'user' not in template_values:
-        template_values['user'] = self.session['user']
       template_values['admin'] = self.CheckAdmin()
+      template_values['sidebar'] = self.GetSideBar()
+      template_values['user'] = self.session['user']
+
     template_path = os.path.join('templates', template_name)
     self.response.out.write(template.render(template_path, template_values))
 
@@ -144,11 +156,16 @@ class LoginPage(FreesideHandler):
 
     hashedpass = freesidemodels.Person.EncryptPassword(
       self.request.get('password'))
-    if user and hashedpass == user.password:
-      self.session['user'] = user
-      self.redirect('/home')
+
+    if user:
+      if hashedpass == user.password:
+        self.session['user'] = user
+        self.redirect('/home')
+      else:
+        self.error_msg = 'Incorrect password.'
+        self.redirect('/login')
     else:
-      # TODO invalid username/password message
+      self.error_msg = 'Invalid username.'
       self.redirect('/login')
 
 
