@@ -7,3 +7,4 @@ Admin Function: disable account
 Dues Tracking (needs design first)
 "Last Seen" attribute for Persons
 Make usernames not case-sensitive
+Fix Nominations.  People can self-nominate according to bylaws
