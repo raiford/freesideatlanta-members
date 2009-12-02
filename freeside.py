@@ -84,7 +84,10 @@ class FreesideHandler(webapp.RequestHandler):
   user = property(lambda self: self.session['user'])
 
   def _GetError(self):
-    return self.session['error']
+    if 'error' in self.session:
+        return self.session['error']
+    else:
+        return None
 
   def _SetError(self, error):
     self.session['error'] = error
@@ -113,8 +116,10 @@ class FreesideHandler(webapp.RequestHandler):
       template_name: str, name of the template to render
       template_values: dict, values to pass to the template
     """
-    template_values['errors'] = [self.error_msg]
+    if self.error_msg is not None:
+        template_values['errors'] = [self.error_msg]
     # TODO(dknowles): Empty errors here?
+    if 'error' in self.session: del self.session['error']
 
     if self.CheckAuth():
       template_values['admin'] = self.CheckAdmin()
