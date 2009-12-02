@@ -85,9 +85,9 @@ class FreesideHandler(webapp.RequestHandler):
 
   def _GetError(self):
     if 'error' in self.session:
-        return self.session['error']
+      return self.session['error']
     else:
-        return None
+      return None
 
   def _SetError(self, error):
     self.session['error'] = error
@@ -117,7 +117,7 @@ class FreesideHandler(webapp.RequestHandler):
       template_values: dict, values to pass to the template
     """
     if self.error_msg is not None:
-        template_values['errors'] = [self.error_msg]
+      template_values['errors'] = [self.error_msg]
     # TODO(dknowles): Empty errors here?
     if 'error' in self.session: del self.session['error']
 
@@ -175,7 +175,7 @@ class LoginPage(FreesideHandler):
 
 
 class AdminPage(FreesideHandler):
-  """The admin page request hanndler."""
+  """The admin page request handler."""
 
   admintasks = {
     'AddMember': 'Add Member',
@@ -474,3 +474,4 @@ def main():
 
 if __name__ == '__main__':
   main()
+ 
