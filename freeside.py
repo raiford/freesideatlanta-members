@@ -442,10 +442,19 @@ class Elections(FreesideHandler):
     nominee_key = self.request.get('nomination')
     vote_key = self.request.get('vote')
 
+    ## @@ TODO: (tlilley) replace check for empty selection with a
+    ## vote validity check instead of a simple string comparison
     if nominee_key:
+      if nominee_key == "!none":
+        raise Error('You have not selected a member to nominate.')
+
       nominee = db.get(db.Key(nominee_key))
       election_util.Nominate(election, nominee, self.session['user'])
+
     elif vote_key:
+      if vote_key == "!none":
+        raise Error('You have not selected a candidate in this election.')
+
       vote = db.get(db.Key(vote_key))
       election_util.Vote(election, vote, self.session['user'])
 
