@@ -362,15 +362,26 @@ class Elections(FreesideHandler):
     return getattr(freesidemodels, election_type).all().filter(
       'vote_end >=', datetime.datetime.now(timezones.UTC())).fetch(1000)
 
+  def _GetPreviousElections(self, election_type):
+    if election_type not in freesidemodels.GetAllElectionTypes():
+      raise Error('Invalid election type')
+
+    return getattr(freesidemodels, election_type).all().filter(
+      'vote_end <', datetime.datetime.now(timezones.UTC())).fetch(1000)
+
   @RedirectIfUnauthorized
   def get(self):
     now = datetime.datetime.now(timezones.UTC())
     current_elections = map(
       self._GetActiveElections, freesidemodels.GetAllElectionTypes())
+    previous_elections = map(
+      self._GetPreviousElections, freesidemodels.GetAllElectionTypes())
 
-    # Flatten the current_elections list
+    # Flatten the elections lists
     current_elections = [
       election for elections in current_elections for election in elections]
+    previous_elections = [
+      election for elections in previous_elections for election in elections]
 
     voting = []
     nominating = []
@@ -412,22 +423,25 @@ class Elections(FreesideHandler):
              'eligible': eligible,
              'has_voted': has_voted,
              'vote_end': vote_end.astimezone(timezones.Eastern())})
-      elif vote_end < now:
-        total_votes = len(election.votes)
-        vote_totals = {}
-        for vote in election.votes:
-          member = db.get(vote)
-          if member.username in vote_totals:
-            vote_totals[member.username] += 1
-          else:
-            vote_totals[member.username] = 1
 
-        ended.append(
-            {'election': election,
-             'totals': sorted(vote_totals.iteritems(),
-                              key=operator.itemgetter(1),
-                              reverse=True),
-             'vote_end': vote_end.astimezone(timezones.Eastern())})
+    for election in previous_elections:
+      vote_end = election.vote_end.replace(tzinfo=timezones.UTC())
+
+      total_votes = len(election.votes)
+      vote_totals = {}
+      for vote in election.votes:
+        member = db.get(vote)
+        if member.username in vote_totals:
+          vote_totals[member.username] += 1
+        else:
+          vote_totals[member.username] = 1
+
+      ended.append(
+          {'election': election,
+           'totals': sorted(vote_totals.iteritems(),
+                            key=operator.itemgetter(1),
+                            reverse=True),
+           'vote_end': vote_end.astimezone(timezones.Eastern())})
 
     template_values = {
         'voting': voting,
