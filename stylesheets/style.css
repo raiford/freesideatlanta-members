@@ -150,8 +150,13 @@
 
 .election-body {
   clear: left;
-  float: left;
   padding: 0.5em 0;
+}
+
+.election-body ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
 .election-header {

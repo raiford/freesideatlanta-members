@@ -49,7 +49,7 @@
         {{ vote.vote_end|time:"h:i A" }}
       </div>
       <div class="election-body">
-        <h3>Nominees:</h3>
+        <b>Nominees:</b><br/>
         <ul>
           {% for nominee in vote.eligible %}
             <li><a href="/members/{{ nominee.username }}">{{ nominee.username}}</a></li>
