@@ -100,6 +100,7 @@ class FreesideHandler(webapp.RequestHandler):
         {'name': 'Home', 'path': '/home'},
         {'name': 'Members', 'path': '/members'},
         {'name': 'Elections', 'path': '/elections'},
+        {'name': 'Dues', 'path': '/dues'},
     ]
     if self.CheckAdmin():
       sidebar.append({'name': 'Admin', 'path': '/admin'})
@@ -475,6 +476,15 @@ class Elections(FreesideHandler):
     self.redirect('/elections')
 
 
+class Dues(FreesideHandler):
+  """Page containing the links to pay dues."""
+  #TODO(raiford) eventually this will report payment status
+  @RedirectIfUnauthorized
+  def get(self):
+    template_values = {'starving': self.session['user'].starving}
+    self.RenderTemplate('dues.html', template_values)
+
+
 class Logout(FreesideHandler):
   """Log the user out."""
   def get(self):
@@ -487,6 +497,7 @@ def main():
     r'/': HomePage,
     r'/login': LoginPage,
     r'/home/?': HomePage,
+    r'/dues/?': Dues,
     r'/admin/?': AdminPage,
     r'/members/?': MembersList,
     r'/members/(.*)': Profile,

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Dues</h1>
+<p>
+  You can pay your monthly dues via cash, check or Google Checkout.  If you want
+  to pay your dues with cash or check please contact the treasurer at one of the weekly
+  meetings.  Below are some links to allow you to pay dues with Google Checkout.
+</p><br/>
+
+<h2>This Month's Dues</h2>
+  <p>
+  This will make a one time payment.
+  </p>
+<form action="https://checkout.google.com/api/checkout/v2/checkoutForm/Merchant/337223875096561" id="BB_BuyButtonForm" method="post" name="BB_BuyButtonForm">
+{% if starving %}
+    <input name="item_name_1" type="hidden" value="Starving Hacker Dues"/>
+    <input name="item_price_1" type="hidden" value="40.0"/>
+    <input name="item_description_1" type="hidden" value="One month of dues for a starving member."/>
+{% else %}
+    <input name="item_name_1" type="hidden" value="Normal Member Dues"/>
+    <input name="item_price_1" type="hidden" value="80.0"/>
+    <input name="item_description_1" type="hidden" value="One month of dues for a normal member."/>
+{% endif %}
+    <input name="item_quantity_1" type="hidden" value="1"/>
+    <input name="item_currency_1" type="hidden" value="USD"/>
+    <input type="hidden" name="shopping-cart.items.item-1.digital-content.display-disposition" value="OPTIMISTIC"/>
+    <input type="hidden" name="shopping-cart.items.item-1.digital-content.description" value="Thank your for paying your monthly dues."/>
+    <input name="_charset_" type="hidden" value="utf-8"/>
+    <input alt="" src="https://checkout.google.com/buttons/buy.gif?merchant_id=337223875096561&amp;w=117&amp;h=48&amp;style=trans&amp;variant=text&amp;loc=en_US" type="image"/>
+</form>
+
+
+<h2>Subscription</h2>
+  <p>
+  This will create a monthly recurring subscription so you don't have to manually pay dues each month.
+  Please note that the first subscription payment will start one month from today, so you will still
+  need to pay this months dues manually.
+  </p>
+<form method="POST" action="https://checkout.google.com/api/checkout/v2/checkoutForm/Merchant/337223875096561" accept-charset="utf-8">
+  {% if starving %}
+  <input type="hidden" name="shopping-cart.items.item-1.item-name" value="Starving Member Dues Subscription"/>
+  <input type="hidden" name="shopping-cart.items.item-1.item-description" value="Starving Member Dues Subscription"/>
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.payments.subscription-payment-1.maximum-charge" value="40.00">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.unit-price" value="40.00">
+  {% else %}
+  <input type="hidden" name="shopping-cart.items.item-1.item-name" value="Normal Member Dues Subscription"/>
+  <input type="hidden" name="shopping-cart.items.item-1.item-description" value="Normal Member Dues Subscription"/>
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.payments.subscription-payment-1.maximum-charge" value="80.00">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.unit-price" value="80.00">
+  {% endif %}
+  <input type="hidden" name="shopping-cart.items.item-1.unit-price.currency" value="USD"/>
+  <input type="hidden" name="shopping-cart.items.item-1.unit-price" value="0.00"/>
+  <input type="hidden" name="shopping-cart.items.item-1.quantity" value="1"/>
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.type" value="google"/>
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.period" value="MONTHLY"/>
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.payments.subscription-payment-1.maximum-charge.currency" value="USD">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.item-name" value="One Months worth of dues.">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.item-description" value="One Months worth of dues.">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.quantity" value="1">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.unit-price.currency" value="USD">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.digital-content.display-disposition" value="OPTIMISTIC">
+  <input type="hidden" name="shopping-cart.items.item-1.subscription.recurrent-item.digital-content.description" value="Head over to the website linked below for pie!">
+  <input type="hidden" name="shopping-cart.items.item-1.digital-content.display-disposition" value="OPTIMISTIC">
+  <input type="hidden" name="shopping-cart.items.item-1.digital-content.description" value="Congratulations! Your subscription is being set up.">
+  <input type="hidden" name="_charset_"/>
+  
+  <input type="image" name="Google Checkout" alt="Fast checkout through Google" src="http://checkout.google.com/buttons/checkout.gif?merchant_id=337223875096561&w=180&h=46&style=trans&variant=text&loc=en_US" height="46" width="180"/>
+  </form>
+
+{% endblock content %}
