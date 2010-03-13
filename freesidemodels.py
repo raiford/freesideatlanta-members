@@ -79,3 +79,30 @@ class OfficerElection(Election):
 
 class BoardElection(Election):
   """A Board Member Election."""
+
+
+class Payment(db.Model):
+  """Base class for Payments."""
+  amount = db.FloatProperty(required=True)
+  #Might be better to use a status string instead?
+  charged = db.BooleanProperty()
+  timestamp = db.DateTimeProperty(required=True)
+  gcheckoutTransID = db.IntergerProperty()
+  gcheckoutBuyerID = db.IntegerProperty()
+  #TODO(raiford): verify payment method is valid from a list.
+  paymentmethod = db.StringProperty(required=True)
+  email = db.EmailProperty()
+
+
+class DuesPayment(Payment):
+  """A members monthly dues."""
+  #TODO(raiford): a cron job to audit dues without member set
+  member = db.ReferenceProperty()
+
+
+class Donation(Payment):
+  """A donation."""
+  firstname = db.StringProperty()
+  lastname = db.StringProperty()
+  email = db.StringProperty()
+
