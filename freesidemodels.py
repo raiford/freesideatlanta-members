@@ -87,7 +87,7 @@ class Payment(db.Model):
   #Might be better to use a status string instead?
   charged = db.BooleanProperty()
   timestamp = db.DateTimeProperty(required=True)
-  gcheckoutTransID = db.IntergerProperty()
+  gcheckoutTransID = db.IntegerProperty()
   gcheckoutBuyerID = db.IntegerProperty()
   #TODO(raiford): verify payment method is valid from a list.
   paymentmethod = db.StringProperty(required=True)
