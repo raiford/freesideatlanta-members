@@ -104,6 +104,7 @@ class FreesideHandler(webapp.RequestHandler):
     ]
     if self.CheckAdmin():
       sidebar.append({'name': 'Admin', 'path': '/admin'})
+      sidebar.append({'name': 'Admin Dues', 'path': '/admindues'})
 
     for page in sidebar:
       page['selected'] = page['path'] in self.request.path
@@ -277,6 +278,20 @@ class AdminPage(FreesideHandler):
       self.redirect('./')
     else:
       getattr(self, task)()
+
+
+class AdminDues(FreesideHandler):
+  """Admin Page for viewing and adjusting dues payments."""
+
+  @RedirectIfUnauthorized
+  @RedirectIfNotAdmin
+  def get(self):
+    template_values = {}
+
+  @RedirectIfUnauthorized
+  @RedirectIfNotAdmin
+  def post(self):
+    template_values = {}
 
 
 class HomePage(FreesideHandler):
@@ -498,6 +513,7 @@ def main():
     r'/login': LoginPage,
     r'/home/?': HomePage,
     r'/dues/?': Dues,
+    r'/admindues/?': AdminDues,
     r'/admin/?': AdminPage,
     r'/members/?': MembersList,
     r'/members/(.*)': Profile,
