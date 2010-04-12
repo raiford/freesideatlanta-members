@@ -104,5 +104,4 @@ class Donation(Payment):
   """A donation."""
   firstname = db.StringProperty()
   lastname = db.StringProperty()
-  email = db.StringProperty()
 
