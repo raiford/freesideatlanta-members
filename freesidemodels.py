@@ -41,6 +41,7 @@ class Person(db.Model):
 class Member(Person):
   """Your basic freeside member."""
 
+  introductory = db.BooleanProperty(default=False)
   starving = db.BooleanProperty(default=False)
   rfid = db.IntegerProperty()
   doormusic = db.BlobProperty()
