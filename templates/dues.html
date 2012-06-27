@@ -18,6 +18,10 @@
     <input name="item_name_1" type="hidden" value="Starving Hacker Dues"/>
     <input name="item_price_1" type="hidden" value="40.0"/>
     <input name="item_description_1" type="hidden" value="One month of dues for a starving member."/>
+{% elif introductory %}
+    <input name="item_name_1" type="hidden" value="Introductory Member Dues"/>
+    <input name="item_price_1" type="hidden" value="60.0"/>
+    <input name="item_description_1" type="hidden" value="One month of introductory rate dues for a new member."/>
 {% else %}
     <input name="item_name_1" type="hidden" value="Normal Member Dues"/>
     <input name="item_price_1" type="hidden" value="80.0"/>
